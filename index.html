@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="light">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>开发者工具箱 - codejson.cn</title>
+  <link rel="stylesheet" href="css/style.css" />
+  <link rel="stylesheet" href="css/themes/light.css" />
+  <link rel="stylesheet" href="css/themes/dark.css" />
+  <link rel="stylesheet" href="css/themes/ocean.css" />
+  <script>
+    var _hmt = _hmt || [];
+    (function() {
+    var hm = document.createElement("script");
+    hm.src = "https://hm.baidu.com/hm.js?97abb4f3251f4cef59d6f3b8d246473c";
+    var s = document.getElementsByTagName("script")[0]; 
+    s.parentNode.insertBefore(hm, s);
+    })();
+  </script>
+  <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-2924816368457956"
+    crossorigin="anonymous">
+  </script>
+</head>
+<body>
+  <header class="site-header">
+    <nav class="nav">
+      <a href="/" class="logo">
+        <span class="logo-code">Code</span>
+        <span class="logo-json">Json</span>
+        <span class="logo-domain">.cn</span>
+      </a>
+      <div class="nav-links">
+        <a href="index.html" class="active">工具箱</a>
+        <a href="tools/hello-world/">HelloWorld</a>
+        <div class="theme-switcher">
+          <button type="button" class="theme-btn" data-theme="light">浅色</button>
+          <button type="button" class="theme-btn" data-theme="dark">深色</button>
+          <button type="button" class="theme-btn" data-theme="ocean">海洋</button>
+        </div>
+      </div>
+    </nav>
+  </header>
+
+  <main class="container">
+    <div class="search-bar">
+      <input type="text" class="search-input" id="searchInput" placeholder="关键字搜索" autofocus>
+    </div>
+    <div class="tool-grid" id="toolGrid"></div>
+  </main>
+
+  <footer class="footer">
+    <div class="footer__container">
+      <div class="footer__left">
+        <p class="footer__copyright">© 2025 codejson.cn 版权所有 | <span class="footer__icp">沪ICP备2025145317号-1</span></p>
+      </div>
+      <div class="footer__right">
+        <ul class="footer__links">
+          <li class="footer__item"><a href="about/" class="footer__link">关于我们</a></li>
+          <li class="footer__item"><a href="about/privacy/" class="footer__link">隐私政策</a></li>
+          <li class="footer__item"><a href="about/terms/" class="footer__link">使用条款</a></li>
+          <li class="footer__item"><a href="about/contact/" class="footer__link">联系我们</a></li>
+          <li class="footer__item"><a href="about/copyright/" class="footer__link">版权声明</a></li>
+        </ul>
+      </div>
+    </div>
+  </footer>
+
+  <script src="js/theme.js"></script>
+  <script>
+    var tools = [
+      { href: "tools/hello-world/", name: "HelloWorld", desc: "经典代码合集，多语言 Hello World 示例" },
+      { href: "tools/base64/", name: "Base64 编解码", desc: "Base64 编码解码，支持 UTF-8 中文，双向实时同步" },
+      { href: "tools/json-parser/", name: "JSON 解析器", desc: "实时 JSON 格式化与树视图，语法高亮，可编辑节点" },
+      { href: "tools/md5/", name: "MD5 哈希", desc: "计算 MD5 哈希值，支持小写/大写输出" },
+      { href: "tools/sha/", name: "SHA 哈希", desc: "SHA-1 / SHA-256 / SHA-512 哈希计算" },
+      { href: "tools/uuid/", name: "UUID 生成", desc: "批量生成 UUID v4，大小写切换，逐行复制" },
+      { href: "tools/color/", name: "颜色转换", desc: "HEX / RGB / HSL 颜色格式互转，实时色块预览" },
+      { href: "tools/regex/", name: "正则测试", desc: "正则表达式实时匹配与高亮预览，支持分组" },
+      { href: "tools/jwt/", name: "JWT 解码", desc: "解码 JWT Token，查看 Header、Payload、Signature" },
+      { href: "tools/unix-time/", name: "Unix 时间戳", desc: "时间戳与日期互转，支持全球时区" },
+      { href: "tools/var-name/", name: "变量名转换", desc: "camelCase / snake_case / kebab-case 等风格互转" }
+    ];
+
+    var searchInput = document.getElementById("searchInput");
+
+    function renderTools(filter) {
+      var grid = document.getElementById("toolGrid");
+      grid.innerHTML = "";
+      var q = (filter || "").toLowerCase();
+      tools.forEach(function (tool) {
+        if (q && tool.name.toLowerCase().indexOf(q) < 0) return;
+        var card = document.createElement("a");
+        card.className = "tool-card";
+        card.href = tool.href;
+        card.innerHTML = "<h3>" + tool.name + "</h3><p>" + tool.desc + "</p>";
+        grid.appendChild(card);
+      });
+    }
+
+    searchInput.addEventListener("input", function () {
+      renderTools(this.value);
+    });
+
+    renderTools();
+  </script>
+</body>
+</html>

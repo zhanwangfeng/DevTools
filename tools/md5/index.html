@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="light">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>MD5 哈希 - codejson.cn</title>
+  <link rel="stylesheet" href="../../css/style.css" />
+  <link rel="stylesheet" href="../../css/tools.css" />
+  <link rel="stylesheet" href="../../css/themes/light.css" />
+  <link rel="stylesheet" href="../../css/themes/dark.css" />
+  <link rel="stylesheet" href="../../css/themes/ocean.css" />
+  <script src="https://cdn.jsdelivr.net/npm/blueimp-md5@2.19.0/js/md5.min.js"></script>
+  <script>
+    var _hmt = _hmt || [];
+    (function() {
+    var hm = document.createElement("script");
+    hm.src = "https://hm.baidu.com/hm.js?97abb4f3251f4cef59d6f3b8d246473c";
+    var s = document.getElementsByTagName("script")[0]; 
+    s.parentNode.insertBefore(hm, s);
+    })();
+  </script>
+  <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-2924816368457956"
+    crossorigin="anonymous">
+  </script>
+</head>
+<body>
+  <header class="site-header">
+    <nav class="nav">
+      <a href="/" class="logo">
+        <span class="logo-code">Code</span>
+        <span class="logo-json">Json</span>
+        <span class="logo-domain">.cn</span>
+      </a>
+      <div class="nav-links">
+        <a href="../../index.html">工具箱</a>
+        <a href="../../tools/hello-world/">HelloWorld</a>
+        <div class="theme-switcher">
+          <button type="button" class="theme-btn" data-theme="light">浅色</button>
+          <button type="button" class="theme-btn" data-theme="dark">深色</button>
+          <button type="button" class="theme-btn" data-theme="ocean">海洋</button>
+        </div>
+      </div>
+    </nav>
+  </header>
+
+  <main class="container">
+    <section class="tool-page">
+      <h1>MD5 哈希</h1>
+      <p class="tool-desc">输入文本实时计算 MD5 哈希值，支持大小写切换。</p>
+
+      <div class="tool-app" id="app">
+        <div class="toolbar">
+          <button class="title-badge" type="button" disabled>MD5</button>
+          <div class="toolbar-actions">
+            <span class="radio-group">
+              <label><input type="radio" name="md5Case" value="lower" checked><span>小写</span></label>
+              <label><input type="radio" name="md5Case" value="upper"><span>大写</span></label>
+            </span>
+            <label><input type="checkbox" id="cbWrap"><span>自动换行</span></label>
+            <button class="btn-ghost" id="btnSample" type="button">示例</button>
+            <button class="btn-ghost" id="btnClear" type="button">清空</button>
+          </div>
+        </div>
+
+        <div class="hash-row">
+          <span class="hash-label">MD5</span>
+          <button class="icon-btn" id="copyHash" data-tooltip="复制" type="button">
+            <svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true"><path fill="currentColor" d="M4 2h7v2H4V2zm-1 3h9v1H3V5zm0 2h9v7H3V7zm1 1v5h7V8H4z"/></svg>
+          </button>
+          <input class="hash-value" id="hashValue" type="text" readonly value="" placeholder="输入文本后将在此显示 MD5 哈希值" />
+        </div>
+
+        <div class="input-header">
+          <span class="pane-label">输入</span>
+        </div>
+
+        <textarea class="tool-textarea" id="textInput" placeholder="在此输入文本…" spellcheck="false" autofocus></textarea>
+      </div>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <div class="footer__container">
+      <div class="footer__left">
+        <p class="footer__copyright">© 2025 codejson.cn 版权所有 | <span class="footer__icp">沪ICP备2025145317号-1</span></p>
+      </div>
+      <div class="footer__right">
+        <ul class="footer__links">
+          <li class="footer__item"><a href="../../about/" class="footer__link">关于我们</a></li>
+          <li class="footer__item"><a href="../../about/privacy/" class="footer__link">隐私政策</a></li>
+          <li class="footer__item"><a href="../../about/terms/" class="footer__link">使用条款</a></li>
+          <li class="footer__item"><a href="../../about/contact/" class="footer__link">联系我们</a></li>
+          <li class="footer__item"><a href="../../about/copyright/" class="footer__link">版权声明</a></li>
+        </ul>
+      </div>
+    </div>
+  </footer>
+
+  <script src="../../js/theme.js"></script>
+  <script>
+    (function () {
+      var textInput = document.getElementById('textInput');
+      var hashValue = document.getElementById('hashValue');
+      var copyHash = document.getElementById('copyHash');
+      var cbWrap = document.getElementById('cbWrap');
+      var btnSample = document.getElementById('btnSample');
+      var btnClear = document.getElementById('btnClear');
+      var caseRadios = document.querySelectorAll('input[name="md5Case"]');
+
+      function getCase() {
+        for (var i = 0; i < caseRadios.length; i++) {
+          if (caseRadios[i].checked) return caseRadios[i].value;
+        }
+        return 'lower';
+      }
+
+      function computeHash() {
+        var text = textInput.value;
+        if (!text) {
+          hashValue.value = '';
+          return;
+        }
+        var hash = md5(text);
+        if (getCase() === 'upper') {
+          hash = hash.toUpperCase();
+        }
+        hashValue.value = hash;
+      }
+
+      cbWrap.addEventListener('change', function () {
+        document.body.classList.toggle('wrap', cbWrap.checked);
+      });
+
+      caseRadios.forEach(function (radio) {
+        radio.addEventListener('change', computeHash);
+      });
+
+      textInput.addEventListener('input', computeHash);
+
+      btnSample.addEventListener('click', function () {
+        textInput.value = 'Hello, MD5!\n你好，世界！';
+        computeHash();
+      });
+
+      btnClear.addEventListener('click', function () {
+        textInput.value = '';
+        hashValue.value = '';
+        textInput.focus();
+      });
+
+      copyHash.addEventListener('click', function () {
+        var text = hashValue.value;
+        if (!text) return;
+        if (navigator.clipboard) {
+          navigator.clipboard.writeText(text).then(function () {
+            copyHash.setAttribute('data-tooltip', '已复制');
+            setTimeout(function () { copyHash.setAttribute('data-tooltip', '复制'); }, 1200);
+          });
+        }
+      });
+    })();
+  </script>
+</body>
+</html>

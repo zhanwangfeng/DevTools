@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="light">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Base64 编码解码 - codejson.cn</title>
+  <link rel="stylesheet" href="../../css/style.css" />
+  <link rel="stylesheet" href="../../css/tools.css" />
+  <link rel="stylesheet" href="../../css/themes/light.css" />
+  <link rel="stylesheet" href="../../css/themes/dark.css" />
+  <link rel="stylesheet" href="../../css/themes/ocean.css" />
+  <script>
+    var _hmt = _hmt || [];
+    (function() {
+    var hm = document.createElement("script");
+    hm.src = "https://hm.baidu.com/hm.js?97abb4f3251f4cef59d6f3b8d246473c";
+    var s = document.getElementsByTagName("script")[0]; 
+    s.parentNode.insertBefore(hm, s);
+    })();
+  </script>
+  <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-2924816368457956"
+    crossorigin="anonymous">
+  </script>
+</head>
+<body>
+  <header class="site-header">
+    <nav class="nav">
+      <a href="/" class="logo">
+        <span class="logo-code">Code</span>
+        <span class="logo-json">Json</span>
+        <span class="logo-domain">.cn</span>
+      </a>
+      <div class="nav-links">
+        <a href="../../index.html">工具箱</a>
+        <a href="../../tools/hello-world/">HelloWorld</a>
+        <div class="theme-switcher">
+          <button type="button" class="theme-btn" data-theme="light">浅色</button>
+          <button type="button" class="theme-btn" data-theme="dark">深色</button>
+          <button type="button" class="theme-btn" data-theme="ocean">海洋</button>
+        </div>
+      </div>
+    </nav>
+  </header>
+
+  <main class="container">
+    <section class="tool-page">
+      <h1 id="toolTitle">Base64 编解码</h1>
+      <p class="tool-desc">左明文右密文，双向实时同步，支持 UTF-8 中文，解码失败有小灯泡提示。</p>
+
+      <div class="tool-app" id="app">
+        <div class="toolbar">
+          <button class="title-badge" type="button" disabled>Base64</button>
+          <div class="toolbar-actions">
+            <label><input type="checkbox" id="cbWrap" checked><span>自动换行</span></label>
+            <label><input type="checkbox" id="cbLines"><span>行号</span></label>
+            <button class="btn-ghost" id="btnSample" type="button">示例</button>
+            <button class="btn-ghost" id="btnClear" type="button">清空</button>
+          </div>
+        </div>
+
+        <div class="panes">
+          <div class="pane">
+            <div class="pane-header">
+              <span class="pane-label">明文</span>
+              <button class="icon-btn" id="copyLeft" data-tooltip="复制" type="button">
+                <svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true"><path fill="currentColor" d="M4 2h7v2H4V2zm-1 3h9v1H3V5zm0 2h9v7H3V7zm1 1v5h7V8H4z"/></svg>
+              </button>
+            </div>
+            <div class="editor" id="editorLeft">
+              <div class="gutter" id="gutterLeft"></div>
+              <textarea class="tool-textarea" id="left" placeholder="在此输入要编码的文本…" spellcheck="false" autofocus></textarea>
+            </div>
+          </div>
+          <div class="pane">
+            <div class="pane-header">
+              <span class="pane-label">编码结果</span>
+              <button class="icon-btn" id="copyRight" data-tooltip="复制" type="button">
+                <svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true"><path fill="currentColor" d="M4 2h7v2H4V2zm-1 3h9v1H3V5zm0 2h9v7H3V7zm1 1v5h7V8H4z"/></svg>
+              </button>
+            </div>
+            <div class="editor" id="editorRight">
+              <div class="gutter" id="gutterRight"></div>
+              <textarea class="tool-textarea" id="right" placeholder="或在此粘贴 Base64 文本进行解码…" spellcheck="false"></textarea>
+            </div>
+            <div class="error-indicator" id="errorIndicator">
+              <svg class="error-bulb" viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path fill="currentColor" d="M9 21c0 .55.45 1 1 1h4c.55 0 1-.45 1-1v-1H9v1zm3-19C8.14 2 5 5.14 5 9c0 2.38 1.19 4.47 3 5.74V17c0 .55.45 1 1 1h6c.55 0 1-.45 1-1v-2.26c1.81-1.27 3-3.36 3-5.74 0-3.86-3.14-7-7-7zm2.85 11.1l-.85.6V16h-4v-2.3l-.85-.6C7.8 12.16 7 10.63 7 9c0-2.76 2.24-5 5-5s5 2.24 5 5c0 1.63-.8 3.16-2.15 4.1z"/></svg>
+              <div class="error-popup">
+                <div class="error-popup-title">解码失败</div>
+                <div id="errorDetail"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <div class="footer__container">
+      <div class="footer__left">
+        <p class="footer__copyright">© 2025 codejson.cn 版权所有 | <span class="footer__icp">沪ICP备2025145317号-1</span></p>
+      </div>
+      <div class="footer__right">
+        <ul class="footer__links">
+          <li class="footer__item"><a href="../../about/" class="footer__link">关于我们</a></li>
+          <li class="footer__item"><a href="../../about/privacy/" class="footer__link">隐私政策</a></li>
+          <li class="footer__item"><a href="../../about/terms/" class="footer__link">使用条款</a></li>
+          <li class="footer__item"><a href="../../about/contact/" class="footer__link">联系我们</a></li>
+          <li class="footer__item"><a href="../../about/copyright/" class="footer__link">版权声明</a></li>
+        </ul>
+      </div>
+    </div>
+  </footer>
+
+  <script src="../../js/theme.js"></script>
+  <script>
+    (function () {
+      var left = document.getElementById('left');
+      var right = document.getElementById('right');
+      var gutterLeft = document.getElementById('gutterLeft');
+      var gutterRight = document.getElementById('gutterRight');
+      var editorLeft = document.getElementById('editorLeft');
+      var editorRight = document.getElementById('editorRight');
+      var errorIndicator = document.getElementById('errorIndicator');
+      var errorDetail = document.getElementById('errorDetail');
+      var cbWrap = document.getElementById('cbWrap');
+      var cbLines = document.getElementById('cbLines');
+      var syncSource = null;
+
+      cbWrap.addEventListener('change', function () {
+        document.body.classList.toggle('wrap', cbWrap.checked);
+      });
+      document.body.classList.toggle('wrap', cbWrap.checked);
+
+      function updateGutter(textarea, gutter) {
+        var lines = textarea.value.split('\n').length;
+        var html = '';
+        for (var i = 1; i <= lines; i++) html += i + '\n';
+        gutter.textContent = html;
+      }
+      function applyLineNumbers() {
+        var show = cbLines.checked;
+        editorLeft.classList.toggle('show-gutter', show);
+        editorRight.classList.toggle('show-gutter', show);
+        if (show) {
+          updateGutter(left, gutterLeft);
+          updateGutter(right, gutterRight);
+        }
+      }
+      cbLines.addEventListener('change', applyLineNumbers);
+      left.addEventListener('scroll', function () { gutterLeft.scrollTop = left.scrollTop; });
+      right.addEventListener('scroll', function () { gutterRight.scrollTop = right.scrollTop; });
+
+      function encodeBase64(text) {
+        var bytes = new TextEncoder().encode(text);
+        var bin = '';
+        for (var i = 0; i < bytes.length; i++) bin += String.fromCharCode(bytes[i]);
+        return btoa(bin);
+      }
+      function decodeBase64(text) {
+        var bin = atob(text.trim());
+        var bytes = new Uint8Array(bin.length);
+        for (var j = 0; j < bin.length; j++) bytes[j] = bin.charCodeAt(j);
+        return new TextDecoder().decode(bytes);
+      }
+
+      function showDecodeError(msg) {
+        errorDetail.textContent = msg;
+        errorIndicator.classList.add('show');
+      }
+      function hideError() { errorIndicator.classList.remove('show'); }
+
+      function refreshGutters() {
+        if (cbLines.checked) {
+          updateGutter(left, gutterLeft);
+          updateGutter(right, gutterRight);
+        }
+      }
+
+      var leftTimer = null;
+      left.addEventListener('input', function () {
+        clearTimeout(leftTimer);
+        leftTimer = setTimeout(function () {
+          syncSource = 'left';
+          hideError();
+          try { right.value = encodeBase64(left.value); } catch (e) { right.value = ''; }
+          refreshGutters();
+          syncSource = null;
+        }, 150);
+      });
+
+      var rightTimer = null;
+      right.addEventListener('input', function () {
+        clearTimeout(rightTimer);
+        rightTimer = setTimeout(function () {
+          if (syncSource === 'left') return;
+          syncSource = 'right';
+          var text = right.value.trim();
+          if (!text) { left.value = ''; hideError(); refreshGutters(); syncSource = null; return; }
+          try {
+            left.value = decodeBase64(text);
+            hideError();
+          } catch (e) {
+            left.value = '';
+            showDecodeError(e && e.message ? e.message : String(e));
+          }
+          refreshGutters();
+          syncSource = null;
+        }, 150);
+      });
+
+      document.getElementById('btnSample').addEventListener('click', function () {
+        var sample = 'Hello, Base64!\n你好，世界！\nBase64 编码测试 / Encoding test';
+        left.value = sample;
+        hideError();
+        try { right.value = encodeBase64(sample); } catch (e) { right.value = ''; }
+        refreshGutters();
+      });
+
+      document.getElementById('btnClear').addEventListener('click', function () {
+        left.value = '';
+        right.value = '';
+        hideError();
+        refreshGutters();
+        left.focus();
+      });
+
+      function bindCopy(btnId, source) {
+        var btn = document.getElementById(btnId);
+        btn.addEventListener('click', function () {
+          var text = source.value;
+          if (!text) return;
+          if (navigator.clipboard) {
+            navigator.clipboard.writeText(text).then(function () {
+              btn.setAttribute('data-tooltip', '已复制');
+              setTimeout(function () { btn.setAttribute('data-tooltip', '复制'); }, 1200);
+            });
+          }
+        });
+      }
+      bindCopy('copyLeft', left);
+      bindCopy('copyRight', right);
+    })();
+  </script>
+</body>
+</html>

@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="light">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Hello World - codejson.cn</title>
+  <link rel="stylesheet" href="../../css/style.css" />
+  <link rel="stylesheet" href="../../css/themes/light.css" />
+  <link rel="stylesheet" href="../../css/themes/dark.css" />
+  <link rel="stylesheet" href="../../css/themes/ocean.css" />
+  <script>
+    var _hmt = _hmt || [];
+    (function() {
+    var hm = document.createElement("script");
+    hm.src = "https://hm.baidu.com/hm.js?97abb4f3251f4cef59d6f3b8d246473c";
+    var s = document.getElementsByTagName("script")[0]; 
+    s.parentNode.insertBefore(hm, s);
+    })();
+  </script>
+  <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-2924816368457956"
+    crossorigin="anonymous">
+  </script>
+</head>
+<body>
+  <header class="site-header">
+    <nav class="nav">
+      <a href="/" class="logo">
+        <span class="logo-code">Code</span>
+        <span class="logo-json">Json</span>
+        <span class="logo-domain">.cn</span>
+      </a>
+      <div class="nav-links">
+        <a href="../../index.html">工具箱</a>
+        <a href="../../tools/hello-world/" class="active">HelloWorld</a>
+        <div class="theme-switcher">
+          <button type="button" class="theme-btn" data-theme="light">浅色</button>
+          <button type="button" class="theme-btn" data-theme="dark">深色</button>
+          <button type="button" class="theme-btn" data-theme="ocean">海洋</button>
+        </div>
+      </div>
+    </nav>
+  </header>
+
+  <main class="container">
+    <section class="tool-page">
+      <h1>Hello World</h1>
+      <p class="tool-desc">经典入门示例，多语言代码一键复制。</p>
+
+      <div class="panel">
+        <div style="display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 16px;">
+          <button type="button" class="btn btn-secondary lang-pill" data-lang="javascript">JavaScript</button>
+          <button type="button" class="btn btn-secondary lang-pill" data-lang="python">Python</button>
+          <button type="button" class="btn btn-secondary lang-pill" data-lang="java">Java</button>
+          <button type="button" class="btn btn-secondary lang-pill" data-lang="golang">Go</button>
+          <button type="button" class="btn btn-secondary lang-pill" data-lang="rust">Rust</button>
+          <button type="button" class="btn btn-secondary lang-pill" data-lang="cpp">C++</button>
+          <button type="button" class="btn btn-secondary lang-pill" data-lang="c">C</button>
+          <button type="button" class="btn btn-secondary lang-pill" data-lang="swift">Swift</button>
+        </div>
+        <h2 style="display: flex; align-items: center; justify-content: space-between; gap: 12px;">
+          <span id="langTitle">JavaScript</span>
+          <button type="button" class="btn" id="copyBtn">复制代码</button>
+        </h2>
+        <pre class="code-block" id="codePreview">console.log("Hello, World!");</pre>
+        <p class="copy-tip" id="copyTip" style="display: none; color: var(--accent); font-size: 13px; margin-top: 8px;">已复制到剪贴板</p>
+      </div>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <div class="footer__container">
+      <div class="footer__left">
+        <p class="footer__copyright">© 2025 codejson.cn 版权所有 | <span class="footer__icp">沪ICP备2025145317号-1</span></p>
+      </div>
+      <div class="footer__right">
+        <ul class="footer__links">
+          <li class="footer__item"><a href="../../about/" class="footer__link">关于我们</a></li>
+          <li class="footer__item"><a href="../../about/privacy/" class="footer__link">隐私政策</a></li>
+          <li class="footer__item"><a href="../../about/terms/" class="footer__link">使用条款</a></li>
+          <li class="footer__item"><a href="../../about/contact/" class="footer__link">联系我们</a></li>
+          <li class="footer__item"><a href="../../about/copyright/" class="footer__link">版权声明</a></li>
+        </ul>
+      </div>
+    </div>
+  </footer>
+
+  <script src="../../js/theme.js"></script>
+  <script>
+    var snippets = {
+      javascript: 'console.log("Hello, World!");',
+      python: 'print("Hello, World!")',
+      java:
+        'public class Main {\n' +
+        '    public static void main(String[] args) {\n' +
+        '        System.out.println("Hello, World!");\n' +
+        '    }\n' +
+        '}',
+      golang:
+        'package main\n\n' +
+        'import "fmt"\n\n' +
+        'func main() {\n' +
+        '    fmt.Println("Hello, World!")\n' +
+        '}',
+      rust:
+        'fn main() {\n' +
+        '    println!("Hello, World!");\n' +
+        '}',
+      cpp:
+        '#include <iostream>\n\n' +
+        'int main() {\n' +
+        '    std::cout << "Hello, World!" << std::endl;\n' +
+        '    return 0;\n' +
+        '}',
+      c:
+        '#include <stdio.h>\n\n' +
+        'int main() {\n' +
+        '    printf("Hello, World!\\n");\n' +
+        '    return 0;\n' +
+        '}',
+      swift: 'print("Hello, World!")'
+    };
+
+    var style = document.createElement("style");
+    style.textContent =
+      "@keyframes hwWave { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-14px); } }";
+    document.head.appendChild(style);
+
+    var langPills = document.querySelectorAll(".lang-pill");
+    var codePreview = document.getElementById("codePreview");
+    var langTitle = document.getElementById("langTitle");
+    var copyBtn = document.getElementById("copyBtn");
+    var copyTip = document.getElementById("copyTip");
+    var activeLang = "javascript";
+
+    function setLang(lang) {
+      activeLang = lang;
+      codePreview.textContent = snippets[lang];
+      langTitle.textContent = lang.charAt(0).toUpperCase() + lang.slice(1);
+      langPills.forEach(function (b) {
+        if (b.dataset.lang === lang) {
+          b.classList.add("active");
+          b.style.borderColor = "var(--accent)";
+          b.style.color = "var(--accent)";
+        } else {
+          b.classList.remove("active");
+          b.style.borderColor = "";
+          b.style.color = "";
+        }
+      });
+    }
+
+    langPills.forEach(function (btn) {
+      btn.addEventListener("click", function () { setLang(btn.dataset.lang); });
+    });
+
+    copyBtn.addEventListener("click", function () {
+      var text = codePreview.textContent;
+      function done() {
+        copyTip.style.display = "block";
+        setTimeout(function () { copyTip.style.display = "none"; }, 2000);
+      }
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text).then(done, done);
+      } else {
+        var ta = document.createElement("textarea");
+        ta.value = text;
+        document.body.appendChild(ta);
+        ta.select();
+        document.execCommand("copy");
+        document.body.removeChild(ta);
+        done();
+      }
+    });
+
+    setLang("javascript");
+  </script>
+</body>
+</html>

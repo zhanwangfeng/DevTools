@@ -1,0 +1,24 @@
+[data-theme="ocean"] {
+  --bg: #0a1620;
+  --text: #d7e6f5;
+  --text-secondary: #6fa2c4;
+  --accent: #22d3ee;
+  --border: #1e3a5f;
+  --header-bg: rgba(10, 22, 40, 0.9);
+  --panel-bg: #0f2240;
+  --input-bg: #0a1628;
+  --code-bg: #0a1620;
+  --code-text: #a5e3f2;
+  --shadow: rgba(0, 0, 0, 0.5);
+
+  --error: #f87171;
+  --hover: rgba(34, 211, 238, 0.12);
+  --overlay: #143052;
+
+  --json-key: #7dd3fc;
+  --json-string: #fbbf24;
+  --json-number: #86efac;
+  --json-bool: #93c5fd;
+  --json-null: #93c5fd;
+  --json-punct: #d7e6f5;
+}

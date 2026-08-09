@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="light">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>颜色转换 - codejson.cn</title>
+  <link rel="stylesheet" href="../../css/style.css" />
+  <link rel="stylesheet" href="../../css/tools.css" />
+  <link rel="stylesheet" href="../../css/themes/light.css" />
+  <link rel="stylesheet" href="../../css/themes/dark.css" />
+  <link rel="stylesheet" href="../../css/themes/ocean.css" />
+  <script>
+    var _hmt = _hmt || [];
+    (function() {
+    var hm = document.createElement("script");
+    hm.src = "https://hm.baidu.com/hm.js?97abb4f3251f4cef59d6f3b8d246473c";
+    var s = document.getElementsByTagName("script")[0]; 
+    s.parentNode.insertBefore(hm, s);
+    })();
+  </script>
+  <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-2924816368457956"
+    crossorigin="anonymous">
+  </script>
+</head>
+<body>
+  <header class="site-header">
+    <nav class="nav">
+      <a href="/" class="logo">
+        <span class="logo-code">Code</span>
+        <span class="logo-json">Json</span>
+        <span class="logo-domain">.cn</span>
+      </a>
+      <div class="nav-links">
+        <a href="../../index.html">工具箱</a>
+        <a href="../../tools/hello-world/">HelloWorld</a>
+        <div class="theme-switcher">
+          <button type="button" class="theme-btn" data-theme="light">浅色</button>
+          <button type="button" class="theme-btn" data-theme="dark">深色</button>
+          <button type="button" class="theme-btn" data-theme="ocean">海洋</button>
+        </div>
+      </div>
+    </nav>
+  </header>
+
+  <main class="container">
+    <section class="tool-page">
+      <h1>颜色转换</h1>
+      <p class="tool-desc">输入任意格式颜色（HEX / RGB / HSL），实时输出三种格式与色块预览。</p>
+
+      <div class="tool-app" id="app">
+        <div class="toolbar">
+          <button class="title-badge" type="button" disabled>Color</button>
+          <div class="toolbar-actions">
+            <button class="btn-ghost" id="btnSample" type="button">示例</button>
+            <button class="btn-ghost" id="btnClear" type="button">清空</button>
+          </div>
+        </div>
+
+        <div class="input-section">
+          <div class="input-row">
+            <input class="tool-input" id="colorInput" type="text" placeholder="输入颜色值，如 #ff6600、rgb(255,102,0)、hsl(24,100%,50%)" spellcheck="false" autofocus />
+            <div class="swatch" id="swatch" style="background-color: #ff6600;"></div>
+          </div>
+        </div>
+
+        <div class="error-line" id="errorLine"></div>
+
+        <div class="formats">
+          <div class="format-row">
+            <span class="format-label">HEX</span>
+            <input class="format-output" id="hexOutput" readonly />
+            <button class="icon-btn" data-tooltip="复制" type="button" data-copy="hexOutput">
+              <svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true"><path fill="currentColor" d="M4 2h7v2H4V2zm-1 3h9v1H3V5zm0 2h9v7H3V7zm1 1v5h7V8H4z"/></svg>
+            </button>
+          </div>
+          <div class="format-row">
+            <span class="format-label">RGB</span>
+            <input class="format-output" id="rgbOutput" readonly />
+            <button class="icon-btn" data-tooltip="复制" type="button" data-copy="rgbOutput">
+              <svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true"><path fill="currentColor" d="M4 2h7v2H4V2zm-1 3h9v1H3V5zm0 2h9v7H3V7zm1 1v5h7V8H4z"/></svg>
+            </button>
+          </div>
+          <div class="format-row">
+            <span class="format-label">HSL</span>
+            <input class="format-output" id="hslOutput" readonly />
+            <button class="icon-btn" data-tooltip="复制" type="button" data-copy="hslOutput">
+              <svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true"><path fill="currentColor" d="M4 2h7v2H4V2zm-1 3h9v1H3V5zm0 2h9v7H3V7zm1 1v5h7V8H4z"/></svg>
+            </button>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <div class="footer__container">
+      <div class="footer__left">
+        <p class="footer__copyright">© 2025 codejson.cn 版权所有 | <span class="footer__icp">沪ICP备2025145317号-1</span></p>
+      </div>
+      <div class="footer__right">
+        <ul class="footer__links">
+          <li class="footer__item"><a href="../../about/" class="footer__link">关于我们</a></li>
+          <li class="footer__item"><a href="../../about/privacy/" class="footer__link">隐私政策</a></li>
+          <li class="footer__item"><a href="../../about/terms/" class="footer__link">使用条款</a></li>
+          <li class="footer__item"><a href="../../about/contact/" class="footer__link">联系我们</a></li>
+          <li class="footer__item"><a href="../../about/copyright/" class="footer__link">版权声明</a></li>
+        </ul>
+      </div>
+    </div>
+  </footer>
+
+  <script src="../../js/theme.js"></script>
+  <script>
+    (function () {
+      var input = document.getElementById('colorInput');
+      var swatch = document.getElementById('swatch');
+      var hexOut = document.getElementById('hexOutput');
+      var rgbOut = document.getElementById('rgbOutput');
+      var hslOut = document.getElementById('hslOutput');
+      var errorLine = document.getElementById('errorLine');
+
+      /* ---- 解析器 ---- */
+      function parseHex(str) {
+        var s = str.trim().replace(/^#/, '');
+        if (s.length === 3) s = s[0] + s[0] + s[1] + s[1] + s[2] + s[2];
+        if (!/^[0-9a-fA-F]{6}$/.test(s)) return null;
+        return {
+          r: parseInt(s.substr(0, 2), 16),
+          g: parseInt(s.substr(2, 2), 16),
+          b: parseInt(s.substr(4, 2), 16)
+        };
+      }
+
+      function parseRgb(str) {
+        var m = str.trim().match(/^rgb\s*\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)\s*\)$/i);
+        if (!m) return null;
+        var r = parseInt(m[1]), g = parseInt(m[2]), b = parseInt(m[3]);
+        if (r < 0 || r > 255 || g < 0 || g > 255 || b < 0 || b > 255) return null;
+        return { r: r, g: g, b: b };
+      }
+
+      function parseHsl(str) {
+        var m = str.trim().match(/^hsl\s*\(\s*([\d.]+)\s*,\s*([\d.]+)%\s*,\s*([\d.]+)%\s*\)$/i);
+        if (!m) return null;
+        var h = parseFloat(m[1]), s = parseFloat(m[2]), l = parseFloat(m[3]);
+        if (h < 0) h = 0; if (h > 360) h = 360;
+        if (s < 0) s = 0; if (s > 100) s = 100;
+        if (l < 0) l = 0; if (l > 100) l = 100;
+        return hslToRgb(h, s / 100, l / 100);
+      }
+
+      function hslToRgb(h, s, l) {
+        var c = (1 - Math.abs(2 * l - 1)) * s;
+        var x = c * (1 - Math.abs((h / 60) % 2 - 1));
+        var m = l - c / 2;
+        var r1, g1, b1;
+        if (h < 60) { r1 = c; g1 = x; b1 = 0; }
+        else if (h < 120) { r1 = x; g1 = c; b1 = 0; }
+        else if (h < 180) { r1 = 0; g1 = c; b1 = x; }
+        else if (h < 240) { r1 = 0; g1 = x; b1 = c; }
+        else if (h < 300) { r1 = x; g1 = 0; b1 = c; }
+        else { r1 = c; g1 = 0; b1 = x; }
+        return {
+          r: Math.round((r1 + m) * 255),
+          g: Math.round((g1 + m) * 255),
+          b: Math.round((b1 + m) * 255)
+        };
+      }
+
+      function rgbToHex(r, g, b) {
+        return '#' + [r, g, b].map(function (v) {
+          var s = v.toString(16);
+          return s.length === 1 ? '0' + s : s;
+        }).join('');
+      }
+
+      function rgbToHsl(r, g, b) {
+        var r1 = r / 255, g1 = g / 255, b1 = b / 255;
+        var max = Math.max(r1, g1, b1), min = Math.min(r1, g1, b1);
+        var h, s, l = (max + min) / 2;
+        if (max === min) {
+          h = 0; s = 0;
+        } else {
+          var d = max - min;
+          s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+          if (max === r1) h = ((g1 - b1) / d + (g1 < b1 ? 6 : 0)) * 60;
+          else if (max === g1) h = ((b1 - r1) / d + 2) * 60;
+          else h = ((r1 - g1) / d + 4) * 60;
+        }
+        return {
+          h: Math.round(h),
+          s: Math.round(s * 100),
+          l: Math.round(l * 100)
+        };
+      }
+
+      function tryParse(str) {
+        if (!str.trim()) return null;
+        var rgb = parseHex(str) || parseRgb(str) || parseHsl(str);
+        return rgb;
+      }
+
+      /* ---- 更新 ---- */
+      function update() {
+        var raw = input.value;
+        var rgb = tryParse(raw);
+        if (!rgb) {
+          if (raw.trim()) {
+            errorLine.textContent = '无效的颜色值，请输入 HEX（如 #ff6600）、RGB（如 rgb(255,102,0)）或 HSL（如 hsl(24,100%,50%)）';
+            errorLine.classList.add('show');
+          } else {
+            errorLine.classList.remove('show');
+          }
+          hexOut.value = '';
+          rgbOut.value = '';
+          hslOut.value = '';
+          swatch.style.backgroundColor = 'transparent';
+          return;
+        }
+        errorLine.classList.remove('show');
+        var hex = rgbToHex(rgb.r, rgb.g, rgb.b);
+        var hsl = rgbToHsl(rgb.r, rgb.g, rgb.b);
+        hexOut.value = hex.toUpperCase();
+        rgbOut.value = 'rgb(' + rgb.r + ', ' + rgb.g + ', ' + rgb.b + ')';
+        hslOut.value = 'hsl(' + hsl.h + ', ' + hsl.s + '%, ' + hsl.l + '%)';
+        swatch.style.backgroundColor = hex;
+      }
+
+      input.addEventListener('input', update);
+
+      /* ---- 示例 ---- */
+      document.getElementById('btnSample').addEventListener('click', function () {
+        input.value = '#ff6600';
+        update();
+      });
+
+      /* ---- 清空 ---- */
+      document.getElementById('btnClear').addEventListener('click', function () {
+        input.value = '';
+        hexOut.value = '';
+        rgbOut.value = '';
+        hslOut.value = '';
+        swatch.style.backgroundColor = 'transparent';
+        errorLine.classList.remove('show');
+        input.focus();
+      });
+
+      /* ---- 复制 ---- */
+      document.querySelectorAll('[data-copy]').forEach(function (btn) {
+        btn.addEventListener('click', function () {
+          var id = btn.getAttribute('data-copy');
+          var el = document.getElementById(id);
+          var text = el.value;
+          if (!text) return;
+          if (navigator.clipboard) {
+            navigator.clipboard.writeText(text).then(function () {
+              btn.setAttribute('data-tooltip', '已复制');
+              setTimeout(function () { btn.setAttribute('data-tooltip', '复制'); }, 1200);
+            });
+          }
+        });
+      });
+
+      /* 初始更新 */
+      update();
+    })();
+  </script>
+</body>
+</html>

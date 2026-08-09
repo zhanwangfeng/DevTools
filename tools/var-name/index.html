@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="light">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>变量名转换 - codejson.cn</title>
+  <link rel="stylesheet" href="../../css/style.css" />
+  <link rel="stylesheet" href="../../css/tools.css" />
+  <link rel="stylesheet" href="../../css/themes/light.css" />
+  <link rel="stylesheet" href="../../css/themes/dark.css" />
+  <link rel="stylesheet" href="../../css/themes/ocean.css" />
+  <script>
+    var _hmt = _hmt || [];
+    (function() {
+    var hm = document.createElement("script");
+    hm.src = "https://hm.baidu.com/hm.js?97abb4f3251f4cef59d6f3b8d246473c";
+    var s = document.getElementsByTagName("script")[0]; 
+    s.parentNode.insertBefore(hm, s);
+    })();
+  </script>
+  <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-2924816368457956"
+    crossorigin="anonymous">
+  </script>
+</head>
+<body>
+  <header class="site-header">
+    <nav class="nav">
+      <a href="/" class="logo">
+        <span class="logo-code">Code</span>
+        <span class="logo-json">Json</span>
+        <span class="logo-domain">.cn</span>
+      </a>
+      <div class="nav-links">
+        <a href="../../index.html">工具箱</a>
+        <a href="../../tools/hello-world/">HelloWorld</a>
+        <div class="theme-switcher">
+          <button type="button" class="theme-btn" data-theme="light">浅色</button>
+          <button type="button" class="theme-btn" data-theme="dark">深色</button>
+          <button type="button" class="theme-btn" data-theme="ocean">海洋</button>
+        </div>
+      </div>
+    </nav>
+  </header>
+
+  <main class="container">
+    <section class="tool-page">
+      <h1>变量名转换</h1>
+      <p class="tool-desc">输入变量名，实时输出 camelCase、snake_case、kebab-case、PascalCase、CONSTANT_CASE 五种风格。</p>
+
+      <div class="tool-app" id="app">
+        <div class="toolbar">
+          <button class="title-badge" type="button" disabled>VarName</button>
+          <div class="toolbar-actions">
+            <button class="btn-ghost" id="btnSample" type="button">示例</button>
+            <button class="btn-ghost" id="btnClear" type="button">清空</button>
+          </div>
+        </div>
+
+        <div class="input-section">
+          <input class="tool-input" id="nameInput" type="text" placeholder="输入变量名，如 some_variableName-Test" spellcheck="false" autofocus />
+        </div>
+
+        <div class="formats">
+          <div class="format-row">
+            <span class="format-label">camelCase</span>
+            <input class="format-output" id="camelOut" readonly />
+            <button class="icon-btn" data-tooltip="复制" type="button" data-copy="camelOut">
+              <svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true"><path fill="currentColor" d="M4 2h7v2H4V2zm-1 3h9v1H3V5zm0 2h9v7H3V7zm1 1v5h7V8H4z"/></svg>
+            </button>
+          </div>
+          <div class="format-row">
+            <span class="format-label">snake_case</span>
+            <input class="format-output" id="snakeOut" readonly />
+            <button class="icon-btn" data-tooltip="复制" type="button" data-copy="snakeOut">
+              <svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true"><path fill="currentColor" d="M4 2h7v2H4V2zm-1 3h9v1H3V5zm0 2h9v7H3V7zm1 1v5h7V8H4z"/></svg>
+            </button>
+          </div>
+          <div class="format-row">
+            <span class="format-label">kebab-case</span>
+            <input class="format-output" id="kebabOut" readonly />
+            <button class="icon-btn" data-tooltip="复制" type="button" data-copy="kebabOut">
+              <svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true"><path fill="currentColor" d="M4 2h7v2H4V2zm-1 3h9v1H3V5zm0 2h9v7H3V7zm1 1v5h7V8H4z"/></svg>
+            </button>
+          </div>
+          <div class="format-row">
+            <span class="format-label">PascalCase</span>
+            <input class="format-output" id="pascalOut" readonly />
+            <button class="icon-btn" data-tooltip="复制" type="button" data-copy="pascalOut">
+              <svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true"><path fill="currentColor" d="M4 2h7v2H4V2zm-1 3h9v1H3V5zm0 2h9v7H3V7zm1 1v5h7V8H4z"/></svg>
+            </button>
+          </div>
+          <div class="format-row">
+            <span class="format-label">CONSTANT_CASE</span>
+            <input class="format-output" id="constantOut" readonly />
+            <button class="icon-btn" data-tooltip="复制" type="button" data-copy="constantOut">
+              <svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true"><path fill="currentColor" d="M4 2h7v2H4V2zm-1 3h9v1H3V5zm0 2h9v7H3V7zm1 1v5h7V8H4z"/></svg>
+            </button>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <div class="footer__container">
+      <div class="footer__left">
+        <p class="footer__copyright">© 2025 codejson.cn 版权所有 | <span class="footer__icp">沪ICP备2025145317号-1</span></p>
+      </div>
+      <div class="footer__right">
+        <ul class="footer__links">
+          <li class="footer__item"><a href="../../about/" class="footer__link">关于我们</a></li>
+          <li class="footer__item"><a href="../../about/privacy/" class="footer__link">隐私政策</a></li>
+          <li class="footer__item"><a href="../../about/terms/" class="footer__link">使用条款</a></li>
+          <li class="footer__item"><a href="../../about/contact/" class="footer__link">联系我们</a></li>
+          <li class="footer__item"><a href="../../about/copyright/" class="footer__link">版权声明</a></li>
+        </ul>
+      </div>
+    </div>
+  </footer>
+
+  <script src="../../js/theme.js"></script>
+  <script>
+    (function () {
+      var input = document.getElementById('nameInput');
+      var camelOut = document.getElementById('camelOut');
+      var snakeOut = document.getElementById('snakeOut');
+      var kebabOut = document.getElementById('kebabOut');
+      var pascalOut = document.getElementById('pascalOut');
+      var constantOut = document.getElementById('constantOut');
+
+      /* 将输入拆分为单词数组 */
+      function tokenize(str) {
+        if (!str) return [];
+        // 1. 按分隔符拆分（- _ . 空格）
+        var parts = str.split(/[-_.\s]+/);
+        var words = [];
+        for (var i = 0; i < parts.length; i++) {
+          var p = parts[i];
+          if (!p) continue;
+          // 2. 在每个部分内，按大写字母拆分（处理 camelCase 和 PascalCase）
+          var sub = p.replace(/([a-z])([A-Z])/g, '$1\0$2')
+                    .replace(/([A-Z]+)([A-Z][a-z])/g, '$1\0$2')
+                    .split('\0');
+          for (var j = 0; j < sub.length; j++) {
+            var w = sub[j].toLowerCase();
+            if (w) words.push(w);
+          }
+        }
+        return words;
+      }
+
+      function update() {
+        var raw = input.value;
+        var words = tokenize(raw);
+        if (words.length === 0) {
+          camelOut.value = '';
+          snakeOut.value = '';
+          kebabOut.value = '';
+          pascalOut.value = '';
+          constantOut.value = '';
+          return;
+        }
+
+        // camelCase
+        camelOut.value = words[0] + words.slice(1).map(function (w) {
+          return w.charAt(0).toUpperCase() + w.slice(1);
+        }).join('');
+
+        // snake_case
+        snakeOut.value = words.join('_');
+
+        // kebab-case
+        kebabOut.value = words.join('-');
+
+        // PascalCase
+        pascalOut.value = words.map(function (w) {
+          return w.charAt(0).toUpperCase() + w.slice(1);
+        }).join('');
+
+        // CONSTANT_CASE
+        constantOut.value = words.join('_').toUpperCase();
+      }
+
+      input.addEventListener('input', update);
+
+      document.getElementById('btnSample').addEventListener('click', function () {
+        input.value = 'some_variableName-Test';
+        update();
+      });
+
+      document.getElementById('btnClear').addEventListener('click', function () {
+        input.value = '';
+        camelOut.value = '';
+        snakeOut.value = '';
+        kebabOut.value = '';
+        pascalOut.value = '';
+        constantOut.value = '';
+        input.focus();
+      });
+
+      /* 复制 */
+      document.querySelectorAll('[data-copy]').forEach(function (btn) {
+        btn.addEventListener('click', function () {
+          var id = btn.getAttribute('data-copy');
+          var el = document.getElementById(id);
+          var text = el.value;
+          if (!text) return;
+          if (navigator.clipboard) {
+            navigator.clipboard.writeText(text).then(function () {
+              btn.setAttribute('data-tooltip', '已复制');
+              setTimeout(function () { btn.setAttribute('data-tooltip', '复制'); }, 1200);
+            });
+          }
+        });
+      });
+
+      /* 初始更新 */
+      update();
+    })();
+  </script>
+</body>
+</html>

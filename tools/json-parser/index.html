@@ -1,0 +1,767 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="light">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>JSON 解析器 - codejson.cn</title>
+  <link rel="stylesheet" href="../../css/style.css" />
+  <link rel="stylesheet" href="../../css/tools.css" />
+  <link rel="stylesheet" href="../../css/themes/light.css" />
+  <link rel="stylesheet" href="../../css/themes/dark.css" />
+  <link rel="stylesheet" href="../../css/themes/ocean.css" />
+  <script>
+    var _hmt = _hmt || [];
+    (function() {
+    var hm = document.createElement("script");
+    hm.src = "https://hm.baidu.com/hm.js?97abb4f3251f4cef59d6f3b8d246473c";
+    var s = document.getElementsByTagName("script")[0]; 
+    s.parentNode.insertBefore(hm, s);
+    })();
+  </script>
+  <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-2924816368457956"
+    crossorigin="anonymous">
+  </script>
+</head>
+<body>
+  <header class="site-header">
+    <nav class="nav">
+      <a href="/" class="logo">
+        <span class="logo-code">Code</span>
+        <span class="logo-json">Json</span>
+        <span class="logo-domain">.cn</span>
+      </a>
+      <div class="nav-links">
+        <a href="../../index.html">工具箱</a>
+        <a href="../../tools/hello-world/">HelloWorld</a>
+        <div class="theme-switcher">
+          <button type="button" class="theme-btn" data-theme="light">浅色</button>
+          <button type="button" class="theme-btn" data-theme="dark">深色</button>
+          <button type="button" class="theme-btn" data-theme="ocean">海洋</button>
+        </div>
+      </div>
+    </nav>
+  </header>
+
+  <main class="container">
+    <section class="tool-page">
+      <h1>JSON 解析器</h1>
+      <p class="tool-desc">实时 JSON 解析与可视化，支持语法高亮、树视图编辑</p>
+
+      <div class="tool-app" id="app">
+        <!-- Toolbar -->
+        <div class="toolbar">
+          <div class="window-tabs">
+            <button class="tab-switch active" data-tab="text" type="button">文本</button>
+            <button class="tab-switch" data-tab="tree" type="button">树视图</button>
+          </div>
+          <div class="toolbar-actions">
+            <label><input type="checkbox" id="cbWrap"><span>自动换行</span></label>
+            <label><input type="checkbox" id="cbLines"><span>行号</span></label>
+            <button class="btn-ghost" id="btnFormat" type="button">展开</button>
+            <button class="btn-ghost" id="btnCompress" type="button">压缩</button>
+            <button class="btn-ghost" id="btnSample" type="button">示例</button>
+            <button class="btn-ghost" id="btnClear" type="button">清空</button>
+            <button class="btn-ghost" id="btnCopy" type="button">复制</button>
+          </div>
+        </div>
+
+        <!-- Window Stage -->
+        <div class="window-stage">
+          <!-- Text Pane -->
+          <div class="window-pane active" id="paneText">
+            <div class="text-editor" id="textEditor">
+              <div class="line-numbers" id="lineNumbers"></div>
+              <div class="text-area-wrapper">
+                <textarea class="tool-textarea json-input" id="jsonInput" placeholder="在此输入 JSON…" spellcheck="false" autofocus></textarea>
+                <pre class="highlight-layer" id="highlightLayer"><code id="highlightCode"></code></pre>
+              </div>
+            </div>
+            <div class="error-indicator" id="errorIndicator">
+              <svg class="error-bulb" viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path fill="currentColor" d="M9 21c0 .55.45 1 1 1h4c.55 0 1-.45 1-1v-1H9v1zm3-19C8.14 2 5 5.14 5 9c0 2.38 1.19 4.47 3 5.74V17c0 .55.45 1 1 1h6c.55 0 1-.45 1-1v-2.26c1.81-1.27 3-3.36 3-5.74 0-3.86-3.14-7-7-7zm2.85 11.1l-.85.6V16h-4v-2.3l-.85-.6C7.8 12.16 7 10.63 7 9c0-2.76 2.24-5 5-5s5 2.24 5 5c0 1.63-.8 3.16-2.15 4.1z"/></svg>
+              <div class="error-popup">
+                <div class="error-popup-title">JSON 解析错误</div>
+                <div id="errorDetail"></div>
+              </div>
+            </div>
+          </div>
+          <!-- Tree Pane -->
+          <div class="window-pane" id="paneTree">
+            <div class="tree-container" id="treeContainer"></div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <div class="sync-indicator" id="syncIndicator">已同步到文本</div>
+
+  <footer class="footer">
+    <div class="footer__container">
+      <div class="footer__left">
+        <p class="footer__copyright">© 2025 codejson.cn 版权所有 | <span class="footer__icp">沪ICP备2025145317号-1</span></p>
+      </div>
+      <div class="footer__right">
+        <ul class="footer__links">
+          <li class="footer__item"><a href="../../about/" class="footer__link">关于我们</a></li>
+          <li class="footer__item"><a href="../../about/privacy/" class="footer__link">隐私政策</a></li>
+          <li class="footer__item"><a href="../../about/terms/" class="footer__link">使用条款</a></li>
+          <li class="footer__item"><a href="../../about/contact/" class="footer__link">联系我们</a></li>
+          <li class="footer__item"><a href="../../about/copyright/" class="footer__link">版权声明</a></li>
+        </ul>
+      </div>
+    </div>
+  </footer>
+
+  <script src="../../js/theme.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/prism.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-json.min.js"></script>
+  <script>
+    (function () {
+      'use strict';
+
+      // ---- DOM refs ----
+      var jsonInput = document.getElementById('jsonInput');
+      var highlightLayer = document.getElementById('highlightLayer');
+      var highlightCode = document.getElementById('highlightCode');
+      var lineNumbers = document.getElementById('lineNumbers');
+      var textEditor = document.getElementById('textEditor');
+      var errorIndicator = document.getElementById('errorIndicator');
+      var errorDetail = document.getElementById('errorDetail');
+      var treeContainer = document.getElementById('treeContainer');
+      var syncIndicator = document.getElementById('syncIndicator');
+      var cbWrap = document.getElementById('cbWrap');
+      var cbLines = document.getElementById('cbLines');
+      var paneText = document.getElementById('paneText');
+      var paneTree = document.getElementById('paneTree');
+      var btnFormat = document.getElementById('btnFormat');
+      var btnCompress = document.getElementById('btnCompress');
+      var btnSample = document.getElementById('btnSample');
+      var btnClear = document.getElementById('btnClear');
+      var btnCopy = document.getElementById('btnCopy');
+
+      // ---- State ----
+      var parsedData = null;
+      var parseError = null;
+      var currentTab = 'text';
+      var parseTimer = null;
+      var expandedState = {};
+      var syncTimer = null;
+      var editingInput = null;
+
+      // ---- Sample ----
+      var SAMPLE = '{\n  "name": "CodeKit",\n  "version": "0.0.3",\n  "description": "A toolkit of handy tools",\n  "features": ["JSON Parser", "Hello World", "Extensible"],\n  "stats": { "tools": 2, "version": "0.0.3", "stable": true },\n  "tags": ["vscode", "extension", "toolkit"],\n  "empty": null,\n  "nested": { "level1": { "level2": { "value": "deep" } } }\n}';
+
+      // ---- Path helpers ----
+      function getByPath(obj, path) {
+        var c = obj;
+        for (var i = 0; i < path.length; i++) c = c[path[i]];
+        return c;
+      }
+
+      function setByPath(obj, path, val) {
+        var c = obj;
+        for (var i = 0; i < path.length - 1; i++) c = c[path[i]];
+        c[path[path.length - 1]] = val;
+      }
+
+      function deleteByPath(obj, path) {
+        var c = obj;
+        for (var i = 0; i < path.length - 1; i++) c = c[path[i]];
+        var key = path[path.length - 1];
+        if (Array.isArray(c)) {
+          c.splice(key, 1);
+        } else {
+          delete c[key];
+        }
+      }
+
+      function pathKey(path) { return JSON.stringify(path); }
+
+      function isExpanded(path) { return !!expandedState[pathKey(path)]; }
+
+      function setExpanded(path, val) { expandedState[pathKey(path)] = val; }
+
+      function typeOf(val) {
+        if (val === null) return 'null';
+        if (Array.isArray(val)) return 'array';
+        return typeof val;
+      }
+
+      // ---- Wrap persistence ----
+      try {
+        cbWrap.checked = localStorage.getItem('json-parser-wrap') === 'true';
+      } catch (e) {}
+
+      function applyWrap() {
+        var wrap = cbWrap.checked;
+        jsonInput.classList.toggle('wrap-enabled', wrap);
+        highlightLayer.classList.toggle('wrap-enabled', wrap);
+        treeContainer.classList.toggle('wrap-enabled', wrap);
+        try { localStorage.setItem('json-parser-wrap', wrap); } catch (e) {}
+      }
+      applyWrap();
+      cbWrap.addEventListener('change', applyWrap);
+
+      // ---- Line numbers ----
+      cbLines.addEventListener('change', function () {
+        textEditor.classList.toggle('show-line-numbers', cbLines.checked);
+        updateLineNumbers();
+      });
+
+      function updateLineNumbers() {
+        if (!cbLines.checked) {
+          lineNumbers.textContent = '';
+          return;
+        }
+        var lines = jsonInput.value.split('\n').length;
+        var html = '';
+        for (var i = 1; i <= lines; i++) html += i + '\n';
+        lineNumbers.textContent = html;
+      }
+
+      // ---- Sync scroll ----
+      jsonInput.addEventListener('scroll', function () {
+        highlightLayer.scrollTop = jsonInput.scrollTop;
+        highlightLayer.scrollLeft = jsonInput.scrollLeft;
+        lineNumbers.scrollTop = jsonInput.scrollTop;
+      });
+
+      // ---- Highlight ----
+      function updateHighlight(text) {
+        if (text.trim()) {
+          var html = Prism.highlight(text, Prism.languages.json, 'json');
+          highlightCode.innerHTML = html;
+        } else {
+          highlightCode.innerHTML = '';
+        }
+      }
+
+      // ---- Parse ----
+      function parseJSON(text) {
+        if (!text.trim()) {
+          parsedData = null;
+          parseError = null;
+          errorIndicator.classList.remove('show');
+          return;
+        }
+        try {
+          parsedData = JSON.parse(text);
+          parseError = null;
+          errorIndicator.classList.remove('show');
+        } catch (e) {
+          parsedData = null;
+          parseError = e.message;
+          errorDetail.textContent = e.message;
+          errorIndicator.classList.add('show');
+        }
+      }
+
+      // ---- Tree rendering ----
+      function renderTree() {
+        if (!parsedData || parseError) {
+          treeContainer.innerHTML = '<div class="empty-hint">请输入有效的 JSON</div>';
+          return;
+        }
+        treeContainer.innerHTML = '';
+        var root = document.createElement('div');
+        root.className = 'tree-node';
+        renderNode('', parsedData, [], root, true);
+        treeContainer.appendChild(root);
+      }
+
+      function renderNode(key, value, path, container, isRoot) {
+        var item = document.createElement('div');
+        item.className = 'tree-item';
+
+        var isObj = value !== null && typeof value === 'object' && !Array.isArray(value);
+        var isArr = Array.isArray(value);
+        var isComplex = isObj || isArr;
+
+        // Toggle
+        var toggle = document.createElement('span');
+        toggle.className = 'tree-toggle';
+        if (isComplex) {
+          var expanded = isExpanded(path);
+          toggle.textContent = expanded ? '▼' : '▶';
+          toggle.dataset.path = pathKey(path);
+          toggle.addEventListener('click', function (e) {
+            e.stopPropagation();
+            var p = JSON.parse(this.dataset.path);
+            setExpanded(p, !isExpanded(p));
+            renderTree();
+          });
+        } else {
+          toggle.innerHTML = '&nbsp;';
+        }
+        item.appendChild(toggle);
+
+        // Key
+        if (!isRoot) {
+          var keySpan = document.createElement('span');
+          keySpan.className = 'tree-key';
+          keySpan.textContent = typeof key === 'number' ? '[' + key + ']' : key;
+          keySpan.dataset.path = pathKey(path);
+          keySpan.addEventListener('click', function (e) {
+            e.stopPropagation();
+            if (editingInput) return;
+            var p = JSON.parse(this.dataset.path);
+            editKey(p);
+          });
+          item.appendChild(keySpan);
+
+          var colon = document.createElement('span');
+          colon.className = 'tree-colon';
+          colon.textContent = ':';
+          item.appendChild(colon);
+        }
+
+        // Value
+        if (isComplex) {
+          var expanded = isExpanded(path);
+          var valSpan = document.createElement('span');
+          valSpan.className = 'tree-value';
+          if (isObj) {
+            var keys = Object.keys(value);
+            if (expanded) {
+              valSpan.textContent = '{';
+            } else {
+              valSpan.textContent = '{ ' + keys.length + (keys.length === 1 ? ' key' : ' keys') + ' }';
+            }
+          } else {
+            if (expanded) {
+              valSpan.textContent = '[';
+            } else {
+              valSpan.textContent = '[ ' + value.length + (value.length === 1 ? ' item' : ' items') + ' ]';
+            }
+          }
+          if (expanded && ((isObj && keys.length === 0) || (isArr && value.length === 0))) {
+            valSpan.textContent = isObj ? '{}' : '[]';
+          }
+          valSpan.classList.add('empty-object');
+          item.appendChild(valSpan);
+        } else {
+          var valSpan = document.createElement('span');
+          valSpan.className = 'tree-value';
+          valSpan.dataset.path = pathKey(path);
+          valSpan.dataset.type = typeOf(value);
+
+          if (value === null) {
+            valSpan.textContent = 'null';
+            valSpan.classList.add('null');
+            valSpan.addEventListener('click', function (e) {
+              e.stopPropagation();
+              if (editingInput) return;
+              var p = JSON.parse(this.dataset.path);
+              changeNull(p);
+            });
+          } else if (typeof value === 'boolean') {
+            valSpan.textContent = value ? 'true' : 'false';
+            valSpan.classList.add('boolean');
+            valSpan.addEventListener('click', function (e) {
+              e.stopPropagation();
+              if (editingInput) return;
+              var p = JSON.parse(this.dataset.path);
+              toggleBool(p);
+            });
+          } else if (typeof value === 'number') {
+            valSpan.textContent = value;
+            valSpan.classList.add('number');
+            valSpan.addEventListener('click', function (e) {
+              e.stopPropagation();
+              if (editingInput) return;
+              var p = JSON.parse(this.dataset.path);
+              var t = this.dataset.type;
+              editValue(p, t);
+            });
+          } else {
+            valSpan.textContent = '"' + value + '"';
+            valSpan.classList.add('string');
+            valSpan.addEventListener('click', function (e) {
+              e.stopPropagation();
+              if (editingInput) return;
+              var p = JSON.parse(this.dataset.path);
+              var t = this.dataset.type;
+              editValue(p, t);
+            });
+          }
+          item.appendChild(valSpan);
+        }
+
+        // Type badge
+        var badge = document.createElement('span');
+        badge.className = 'tree-type-badge';
+        if (value === null) {
+          badge.textContent = 'null';
+        } else if (typeof value === 'boolean') {
+          badge.textContent = 'boolean';
+        } else if (typeof value === 'number') {
+          badge.textContent = 'number';
+        } else if (typeof value === 'string') {
+          badge.textContent = 'string';
+        } else if (isArr) {
+          badge.textContent = 'array[' + value.length + ']';
+        } else {
+          badge.textContent = 'object{' + Object.keys(value).length + '}';
+        }
+        item.appendChild(badge);
+
+        // Actions
+        if (!isRoot) {
+          var actions = document.createElement('span');
+          actions.className = 'tree-actions';
+
+          if (isComplex) {
+            var addBtn = document.createElement('button');
+            addBtn.className = 'action-btn add';
+            addBtn.textContent = '+';
+            addBtn.dataset.path = pathKey(path);
+            addBtn.addEventListener('click', function (e) {
+              e.stopPropagation();
+              if (editingInput) return;
+              var p = JSON.parse(this.dataset.path);
+              addNode(p);
+            });
+            actions.appendChild(addBtn);
+          }
+
+          var delBtn = document.createElement('button');
+          delBtn.className = 'action-btn delete';
+          delBtn.textContent = '×';
+          delBtn.dataset.path = pathKey(path);
+          delBtn.addEventListener('click', function (e) {
+            e.stopPropagation();
+            if (editingInput) return;
+            var p = JSON.parse(this.dataset.path);
+            deleteNode(p);
+          });
+          actions.appendChild(delBtn);
+
+          item.appendChild(actions);
+        }
+
+        container.appendChild(item);
+
+        // Children
+        if (isComplex && isExpanded(path)) {
+          var children = document.createElement('div');
+          children.className = 'tree-children';
+          if (isObj) {
+            var childKeys = Object.keys(value);
+            for (var i = 0; i < childKeys.length; i++) {
+              renderNode(childKeys[i], value[childKeys[i]], path.concat(childKeys[i]), children, false);
+            }
+            if (childKeys.length === 0) {
+              var emptyHint = document.createElement('div');
+              emptyHint.className = 'tree-item';
+              emptyHint.style.color = 'var(--text-secondary)';
+              emptyHint.style.fontStyle = 'italic';
+              emptyHint.textContent = '  (empty object)';
+              children.appendChild(emptyHint);
+            }
+          } else {
+            for (var j = 0; j < value.length; j++) {
+              renderNode(j, value[j], path.concat(j), children, false);
+            }
+            if (value.length === 0) {
+              var emptyHint2 = document.createElement('div');
+              emptyHint2.className = 'tree-item';
+              emptyHint2.style.color = 'var(--text-secondary)';
+              emptyHint2.style.fontStyle = 'italic';
+              emptyHint2.textContent = '  (empty array)';
+              children.appendChild(emptyHint2);
+            }
+          }
+          container.appendChild(children);
+        }
+      }
+
+      // ---- Tree edit: inline value ----
+      function editValue(path, type) {
+        var current = getByPath(parsedData, path);
+        var displayValue = type === 'string' ? current : String(current);
+
+        var valSpan = document.querySelector('.tree-value[data-path="' + pathKey(path).replace(/"/g, '&quot;') + '"]');
+        if (!valSpan) return;
+
+        var input = document.createElement('input');
+        input.className = 'edit-input';
+        input.type = 'text';
+        input.value = displayValue;
+        input.dataset.path = pathKey(path);
+        input.dataset.type = type;
+        input.style.width = Math.max(60, displayValue.length * 8 + 16) + 'px';
+
+        valSpan.textContent = '';
+        valSpan.appendChild(input);
+        editingInput = input;
+        input.focus();
+        input.select();
+
+        function finish() {
+          if (!editingInput) return;
+          var newVal = input.value;
+          var p = JSON.parse(input.dataset.path);
+          var t = input.dataset.type;
+          if (t === 'number') {
+            var num = Number(newVal);
+            if (isNaN(num)) {
+              renderTree();
+              editingInput = null;
+              return;
+            }
+            setByPath(parsedData, p, num);
+          } else {
+            setByPath(parsedData, p, newVal);
+          }
+          editingInput = null;
+          renderTree();
+          syncToText();
+        }
+
+        function cancel() {
+          if (!editingInput) return;
+          editingInput = null;
+          renderTree();
+        }
+
+        input.addEventListener('blur', function () {
+          setTimeout(finish, 150);
+        });
+
+        input.addEventListener('keydown', function (e) {
+          if (e.key === 'Enter') {
+            e.preventDefault();
+            input.removeEventListener('blur', finish);
+            editingInput = null;
+            finish();
+          } else if (e.key === 'Escape') {
+            e.preventDefault();
+            input.removeEventListener('blur', finish);
+            cancel();
+          }
+        });
+      }
+
+      // ---- Tree edit: key ----
+      function editKey(path) {
+        var current = path[path.length - 1];
+        if (typeof current === 'number') return; // array indices not editable
+
+        var newKey = prompt('编辑属性名:', current);
+        if (newKey === null || newKey === current || !newKey) return;
+
+        var parent = getByPath(parsedData, path.slice(0, -1));
+        if (parent.hasOwnProperty(newKey)) {
+          alert('属性名 "' + newKey + '" 已存在');
+          return;
+        }
+        parent[newKey] = parent[current];
+        delete parent[current];
+        renderTree();
+        syncToText();
+      }
+
+      // ---- Tree edit: toggle boolean ----
+      function toggleBool(path) {
+        var current = getByPath(parsedData, path);
+        setByPath(parsedData, path, !current);
+        renderTree();
+        syncToText();
+      }
+
+      // ---- Tree edit: change null ----
+      function changeNull(path) {
+        var newType = prompt('选择新类型: string, number, boolean, object, array', 'string');
+        if (newType === null) return;
+        var val;
+        switch (newType.trim()) {
+          case 'string': val = ''; break;
+          case 'number': val = 0; break;
+          case 'boolean': val = false; break;
+          case 'object': val = {}; break;
+          case 'array': val = []; break;
+          default: return;
+        }
+        setByPath(parsedData, path, val);
+        renderTree();
+        syncToText();
+      }
+
+      // ---- Tree edit: delete node ----
+      function deleteNode(path) {
+        if (path.length === 0) return;
+        deleteByPath(parsedData, path);
+        renderTree();
+        syncToText();
+      }
+
+      // ---- Tree edit: add node ----
+      function addNode(path) {
+        var current = getByPath(parsedData, path);
+        if (Array.isArray(current)) {
+          current.push(null);
+        } else {
+          var key = prompt('输入属性名:');
+          if (!key) return;
+          if (current.hasOwnProperty(key)) {
+            alert('属性名 "' + key + '" 已存在');
+            return;
+          }
+          current[key] = null;
+        }
+        setExpanded(path, true);
+        renderTree();
+        syncToText();
+      }
+
+      // ---- Sync tree to text ----
+      function syncToText() {
+        jsonInput.value = JSON.stringify(parsedData, null, 2);
+        updateHighlight(jsonInput.value);
+        updateLineNumbers();
+        showSyncIndicator();
+      }
+
+      function showSyncIndicator() {
+        syncIndicator.classList.add('show');
+        clearTimeout(syncTimer);
+        syncTimer = setTimeout(function () {
+          syncIndicator.classList.remove('show');
+        }, 2000);
+      }
+
+      // ---- Expand / collapse all ----
+      function expandAll() {
+        function traverse(obj, path) {
+          if (obj !== null && typeof obj === 'object') {
+            setExpanded(path, true);
+            if (Array.isArray(obj)) {
+              for (var i = 0; i < obj.length; i++) {
+                traverse(obj[i], path.concat(i));
+              }
+            } else {
+              var keys = Object.keys(obj);
+              for (var j = 0; j < keys.length; j++) {
+                traverse(obj[keys[j]], path.concat(keys[j]));
+              }
+            }
+          }
+        }
+        if (parsedData) {
+          traverse(parsedData, []);
+          renderTree();
+        }
+      }
+
+      function collapseAll() {
+        expandedState = {};
+        if (parsedData) {
+          renderTree();
+        }
+      }
+
+      // ---- Parse & update ----
+      function doParse() {
+        parseJSON(jsonInput.value);
+        updateHighlight(jsonInput.value);
+        updateLineNumbers();
+        if (currentTab === 'tree') {
+          renderTree();
+        }
+      }
+
+      // ---- Debounce input ----
+      jsonInput.addEventListener('input', function () {
+        clearTimeout(parseTimer);
+        parseTimer = setTimeout(doParse, 300);
+      });
+
+      // ---- Tab switching ----
+      document.querySelectorAll('.tab-switch').forEach(function (btn) {
+        btn.addEventListener('click', function () {
+          document.querySelectorAll('.tab-switch').forEach(function (b) {
+            b.classList.remove('active');
+          });
+          btn.classList.add('active');
+          currentTab = btn.dataset.tab;
+          paneText.classList.toggle('active', currentTab === 'text');
+          paneTree.classList.toggle('active', currentTab === 'tree');
+          if (currentTab === 'tree') {
+            btnFormat.textContent = '全部展开';
+            btnCompress.textContent = '全部收起';
+            parseJSON(jsonInput.value);
+            renderTree();
+          } else {
+            btnFormat.textContent = '展开';
+            btnCompress.textContent = '压缩';
+          }
+        });
+      });
+
+      // ---- Format / Compress buttons ----
+      btnFormat.addEventListener('click', function () {
+        if (currentTab === 'text') {
+          try {
+            jsonInput.value = JSON.stringify(JSON.parse(jsonInput.value), null, 2);
+            doParse();
+          } catch (e) {}
+        } else {
+          expandAll();
+        }
+      });
+
+      btnCompress.addEventListener('click', function () {
+        if (currentTab === 'text') {
+          try {
+            jsonInput.value = JSON.stringify(JSON.parse(jsonInput.value));
+            doParse();
+          } catch (e) {}
+        } else {
+          collapseAll();
+        }
+      });
+
+      // ---- Sample ----
+      btnSample.addEventListener('click', function () {
+        jsonInput.value = SAMPLE;
+        doParse();
+      });
+
+      // ---- Clear ----
+      btnClear.addEventListener('click', function () {
+        jsonInput.value = '';
+        parsedData = null;
+        parseError = null;
+        errorIndicator.classList.remove('show');
+        updateHighlight('');
+        updateLineNumbers();
+        expandedState = {};
+        if (currentTab === 'tree') {
+          treeContainer.innerHTML = '<div class="empty-hint">请输入有效的 JSON</div>';
+        }
+        jsonInput.focus();
+      });
+
+      // ---- Copy ----
+      btnCopy.addEventListener('click', function () {
+        var text;
+        if (currentTab === 'text') {
+          text = jsonInput.value;
+        } else {
+          text = parsedData ? JSON.stringify(parsedData, null, 2) : '';
+        }
+        if (!text) return;
+        if (navigator.clipboard) {
+          navigator.clipboard.writeText(text).then(function () {
+            btnCopy.textContent = '已复制';
+            setTimeout(function () { btnCopy.textContent = '复制'; }, 1200);
+          });
+        }
+      });
+
+      // ---- Init ----
+      doParse();
+    })();
+  </script>
+</body>
+</html>
