@@ -60,21 +60,21 @@ a:hover {
 }
 
 .logo-code {
-    color: #1D2129;
+    color: var(--logo-code);
     font-size: 1.25rem;
     font-weight: 700;
     letter-spacing: -0.02em;
 }
 
 .logo-json {
-    color: #165DFF;
+    color: var(--logo-json);
     font-size: 1.25rem;
     font-weight: 600;
     letter-spacing: -0.02em;
 }
 
 .logo-domain {
-    color: #722ED1;
+    color: var(--logo-domain);
     font-size: 1rem;
     letter-spacing: -0.01em;
 }

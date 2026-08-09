@@ -21,4 +21,8 @@
   --json-bool: #8800ff;
   --json-null: #0074c8;
   --json-punct: #393a34;
+
+  --logo-code: #1D2129;
+  --logo-json: #165DFF;
+  --logo-domain: #722ED1;
 }
