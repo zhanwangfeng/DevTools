@@ -1,0 +1,672 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Tetris Effect Connected</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;font-family:system-ui, sans-serif;}
+body{
+  background:#000;
+  color:#fff;
+  min-height:100vh;
+  overflow:hidden;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  padding:12px;
+}
+.page-title{
+  font-size:22px;
+  color:#7cf;
+  margin-bottom:16px;
+}
+.viewport{
+  position:relative;
+  overflow:hidden;
+}
+/* 动态背景 */
+.bg-canvas{
+  position:absolute;
+  inset:0;
+  z-index:1;
+}
+.bg-layer{
+  position:absolute;
+  inset:-30%;
+  background:radial-gradient(circle at 50% 50%, #102040 0%, #000 70%);
+  animation:slowPulse 12s ease-in-out infinite alternate;
+  filter:blur(24px);
+}
+@keyframes slowPulse{
+  0%{transform:scale(1);opacity:0.65;}
+  100%{transform:scale(1.18);opacity:0.92;}
+}
+/* 游戏整体容器 */
+.game-frame{
+  position:relative;
+  z-index:10;
+  display:flex;
+  gap:18px;
+  align-items:flex-start;
+  background:rgba(0,0,0,0.25);
+  padding:26px;
+  border-radius:14px;
+  border:1px solid rgba(255,255,255,0.12);
+}
+.panel-label{
+  font-size:12px;
+  color:#b8d8ff;
+  text-align:center;
+  margin-bottom:6px;
+}
+.next-stack{
+  display:flex;
+  flex-direction:column;
+  gap:8px;
+}
+.mini-board{
+  display:grid;
+  grid-template-columns:repeat(4,18px);
+  grid-template-rows:repeat(4,18px);
+  gap:2px;
+}
+/* 主游戏棋盘 10×20 */
+.main-board{
+  display:grid;
+  grid-template-columns:repeat(10,22px);
+  grid-template-rows:repeat(20,22px);
+  gap:2px;
+}
+.cell{
+  width:100%;
+  height:100%;
+  border-radius:3px;
+  box-shadow:0 0 10px currentColor, 0 0 2px #ffffff44 inset;
+}
+.cell.empty{
+  background:rgba(255,255,255,0.04);
+  box-shadow:none;
+}
+.cell.ghost{
+  opacity:0.22;
+}
+.game-over-overlay{
+  position:absolute;
+  inset:0;
+  background:rgba(0,0,0,0.75);
+  z-index:30;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-size:28px;
+  color:#ff8888;
+  text-shadow:0 0 12px #000;
+  display:none;
+}
+/* hold下方信息面板 */
+.hold-info-panel{
+  margin-top:14px;
+  font-size:13px;
+  line-height:1.6;
+  color:#b8d8ff;
+  max-width:100px;
+}
+.keymap{
+  margin-top:10px;
+  font-size:11px;
+  color:#88a;
+  line-height:1.4;
+}
+.bottom-btn-area{
+  margin-top:20px;
+}
+#btnNewGame{
+  padding:10px 24px;
+  background:#222836;
+  color:#fff;
+  border:1px solid #444c60;
+  border-radius:6px;
+  font-size:14px;
+}
+#btnNewGame:hover{
+  background:#2c3446;
+}
+</style>
+</head>
+<body>
+<div class="page-title">Tetris Effect Connected</div>
+<div class="viewport">
+  <div class="bg-canvas">
+    <div class="bg-layer" id="bgMain"></div>
+  </div>
+  <div class="game-frame">
+    <!-- Hold 暂存区 + 信息面板 -->
+    <div>
+      <div class="panel-label">HOLD</div>
+      <div class="mini-board" id="holdBoard"></div>
+      <div class="hold-info-panel">
+        <div><span data-lang="score">分数：</span><span id="scoreVal">0</span></div>
+        <div><span data-lang="lines">消除行数：</span><span id="linesVal">0</span></div>
+        <div><span data-lang="level">等级：</span><span id="levelVal">1</span></div>
+        <div class="keymap" data-lang="keymap">
+          ← → 移动<br>
+          ↑ 旋转<br>
+          ↓ 软降<br>
+          空格：硬降<br>
+          C：Hold暂存<br>
+        </div>
+      </div>
+    </div>
+    <!-- 主棋盘 10x20 -->
+    <div class="main-board" id="mainBoard"></div>
+    <!-- Next预览队列(5个next) -->
+    <div>
+      <div class="panel-label">NEXT</div>
+      <div class="next-stack" id="nextStack"></div>
+    </div>
+    <div class="game-over-overlay" id="gameOverlay">GAME OVER<br /><span data-lang="restartHint" style="font-size:14px;margin-top:12px;display:block">点下方按钮重启</span></div>
+  </div>
+</div>
+<div class="bottom-btn-area">
+  <button id="btnNewGame" data-lang="btnNewGame">新游戏 / 重新开始</button>
+  <button id="btnLang" style="margin-left:10px;padding:10px 16px;background:#222836;color:#fff;border:1px solid #444c60;border-radius:6px;font-size:14px;cursor:pointer;">EN</button>
+</div>
+<script>
+// -------------------------- 场景配置（沿用之前模拟Tetris Effect）
+const SCENES = [];
+for(let i=1;i<=32;i++){
+  const hue = (i * 11.3) % 360;
+  const sat = 62 + (i%5)*9;
+  const lightBase = 7 + (i%7)*3.5;
+  SCENES.push({
+    id:i,
+    name:`Scene ${i}`,
+    bgGradient:`radial-gradient(circle at 50% 42%, hsl(${hue}, ${sat}%, ${lightBase+14}%) 0%, hsl(${(hue+180)%360}, ${sat*0.55}%, ${lightBase}%) 48%, #000 82%)`,
+    pieces:[
+      `hsl(${(hue+0)%360}, 92%, 70%)`,   // I 0
+      `hsl(${(hue+48)%360}, 89%, 64%)`,  // O 1
+      `hsl(${(hue+92)%360}, 86%, 61%)`,  // T 2
+      `hsl(${(hue+138)%360}, 83%, 59%)`, // L 3
+      `hsl(${(hue+184)%360}, 81%, 57%)`, // J 4
+      `hsl(${(hue+228)%360}, 85%, 62%)`, // S 5
+      `hsl(${(hue+274)%360}, 87%, 65%)`  // Z 6
+    ],
+    pulseSpeed: 5.5 + (i%6)*1.3
+  })
+}
+const RETRO_1984 = {
+  id:998, name:"1984 Classic",
+  bgGradient:"radial-gradient(circle,#121218 0%,#000 72%)",
+  pieces:["#00ffff","#ffff00","#aa00aa","#ff8800","#0000ff","#00ff00","#ff0000"],
+  pulseSpeed:15
+}
+const RETRO_1989 = {
+  id:999, name:"1989 NES",
+  bgGradient:"radial-gradient(circle,#231b11 0%,#000 72%)",
+  pieces:["#54ffff","#ffff54","#dd44dd","#ffaa44","#4444ff","#44dd44","#ff4444"],
+  pulseSpeed:15
+}
+
+// ========= SHAPES：预定义每个方块全部旋转形态 [方块ID][rot][y][x]
+// I O T L J S Z；每个最多4个旋转姿态
+const SHAPES = [
+  // 0:I
+  [
+    [[0,1,0,0],[0,1,0,0],[0,1,0,0],[0,1,0,0]], //0
+    [[0,0,0,0],[1,1,1,1],[0,0,0,0],[0,0,0,0]], //1
+    [[0,1,0,0],[0,1,0,0],[0,1,0,0],[0,1,0,0]], //2
+    [[0,0,0,0],[1,1,1,1],[0,0,0,0],[0,0,0,0]]  //3
+  ],
+  //1:O O方块旋转不变
+  [
+    [[0,0,0,0],[0,1,1,0],[0,1,1,0],[0,0,0,0]],
+    [[0,0,0,0],[0,1,1,0],[0,1,1,0],[0,0,0,0]],
+    [[0,0,0,0],[0,1,1,0],[0,1,1,0],[0,0,0,0]],
+    [[0,0,0,0],[0,1,1,0],[0,1,1,0],[0,0,0,0]]
+  ],
+  //2:T
+  [
+    [[0,1,0,0],[1,1,1,0],[0,0,0,0],[0,0,0,0]], //0
+    [[0,1,0,0],[0,1,1,0],[0,1,0,0],[0,0,0,0]], //1
+    [[0,0,0,0],[1,1,1,0],[0,1,0,0],[0,0,0,0]], //2
+    [[0,1,0,0],[1,1,0,0],[0,1,0,0],[0,0,0,0]]  //3
+  ],
+  //3:L
+  [
+    [[0,0,1,0],[1,1,1,0],[0,0,0,0],[0,0,0,0]],
+    [[0,1,0,0],[0,1,0,0],[0,1,1,0],[0,0,0,0]],
+    [[0,0,0,0],[1,1,1,0],[1,0,0,0],[0,0,0,0]],
+    [[1,1,0,0],[0,1,0,0],[0,1,0,0],[0,0,0,0]]
+  ],
+  //4:J
+  [
+    [[1,0,0,0],[1,1,1,0],[0,0,0,0],[0,0,0,0]],
+    [[0,1,1,0],[0,1,0,0],[0,1,0,0],[0,0,0,0]],
+    [[0,0,0,0],[1,1,1,0],[0,0,1,0],[0,0,0,0]],
+    [[0,1,0,0],[0,1,0,0],[1,1,0,0],[0,0,0,0]]
+  ],
+  //5:S
+  [
+    [[0,1,1,0],[1,1,0,0],[0,0,0,0],[0,0,0,0]],
+    [[0,1,0,0],[0,1,1,0],[0,0,1,0],[0,0,0,0]],
+    [[0,1,1,0],[1,1,0,0],[0,0,0,0],[0,0,0,0]],
+    [[0,1,0,0],[0,1,1,0],[0,0,1,0],[0,0,0,0]]
+  ],
+  //6:Z
+  [
+    [[1,1,0,0],[0,1,1,0],[0,0,0,0],[0,0,0,0]],
+    [[0,0,1,0],[0,1,1,0],[0,1,0,0],[0,0,0,0]],
+    [[1,1,0,0],[0,1,1,0],[0,0,0,0],[0,0,0,0]],
+    [[0,0,1,0],[0,1,1,0],[0,1,0,0],[0,0,0,0]]
+  ]
+];
+
+// DOM
+const bgMain = document.getElementById('bgMain');
+const mainBoardEl = document.getElementById('mainBoard');
+const holdBoardEl = document.getElementById('holdBoard');
+const nextStackEl = document.getElementById('nextStack');
+const gameOverlay = document.getElementById('gameOverlay');
+const scoreVal = document.getElementById('scoreVal');
+const linesVal = document.getElementById('linesVal');
+const levelVal = document.getElementById('levelVal');
+// 游戏状态
+const COLS = 10;
+const ROWS = 20;
+let gameState = {
+  board: [],
+  currentScene: null,
+  score:0,
+  lines:0,
+  level:1,
+  dropTimer:null,
+  dropInterval:1000,
+  gameOver:false,
+  bag:[],
+  nextQueue:[],
+  holdPiece:null,
+  canHold:true,
+  cur:{ id:0, rot:0, x:3, y:0 }
+};
+
+// 初始化棋盘DOM格子，仅执行一次
+function initBoardDom(){
+  mainBoardEl.innerHTML = '';
+  for(let r=0;r<ROWS;r++){
+    for(let c=0;c<COLS;c++){
+      const div = document.createElement('div');
+      div.className = 'cell empty';
+      mainBoardEl.appendChild(div);
+    }
+  }
+}
+function buildMiniBoard(){
+  const el = document.createElement('div');
+  el.className = 'mini-board';
+  for(let r=0;r<4;r++){
+    for(let c=0;c<4;c++){
+      const d = document.createElement('div');
+      d.className = 'cell empty';
+      el.appendChild(d);
+    }
+  }
+  return el;
+}
+// 7‑bag 生成
+function refillBag(){
+  gameState.bag = [0,1,2,3,4,5,6].sort(()=>Math.random()-0.5);
+}
+function getNextPiece(){
+  if(gameState.bag.length===0) refillBag();
+  return gameState.bag.pop();
+}
+function fillNextQueue(){
+  while(gameState.nextQueue.length<5){
+    gameState.nextQueue.unshift(getNextPiece());
+  }
+}
+
+// 碰撞检测：直接取预定义旋转形态，移除rotateShape
+function checkCollision(id, rot, x, y){
+  const shape = SHAPES[id][rot];
+  for(let r=0;r<4;r++){
+    for(let c=0;c<4;c++){
+      if(!shape[r][c]) continue;
+      const nx = x + c;
+      const ny = y + r;
+      if(nx<0 || nx>=COLS || ny>=ROWS) return true;
+      if(ny>=0 && gameState.board[ny][nx]!==-1) return true;
+    }
+  }
+  return false;
+}
+
+// 获取ghost（影子）Y坐标
+function getGhostY(){
+  let y = gameState.cur.y;
+  while(!checkCollision(gameState.cur.id, gameState.cur.rot, gameState.cur.x, y+1)) y++;
+  return y;
+}
+
+// 锁定方块到board
+function lockPiece(){
+  const {id,rot,x,y} = gameState.cur;
+  const shape = SHAPES[id][rot];
+  for(let r=0;r<4;r++){
+    for(let c=0;c<4;c++){
+      if(!shape[r][c]) continue;
+      const ny = y+r;
+      const nx = x+c;
+      if(ny<0){
+        gameState.gameOver = true;
+        return;
+      }
+      gameState.board[ny][nx] = id;
+    }
+  }
+  gameState.canHold = true;
+  clearFullLines();
+  spawnNext();
+}
+
+// ✅修复NaN：正确消行逻辑
+function clearFullLines(){
+  let cleared = 0;
+  for(let r = ROWS - 1; r >= 0; ){
+    // 判断该行是否填满：没有-1即为满行
+    const isFull = !gameState.board[r].includes(-1);
+    if(isFull){
+      gameState.board.splice(r, 1);
+      gameState.board.unshift(Array(COLS).fill(-1));
+      cleared +=1;
+    }else{
+      r -=1;
+    }
+  }
+  if(cleared>0){
+    gameState.lines += cleared;
+    const scoreTable = [0,100,300,500,800];
+    gameState.score += scoreTable[cleared] * gameState.level;
+    gameState.level = Math.floor(gameState.lines /10)+1;
+    gameState.dropInterval = Math.max(100, 1000-(gameState.level-1)*80);
+    updateStatsUi();
+  }
+}
+
+function spawnNext(){
+  const nextId = gameState.nextQueue.pop();
+  fillNextQueue();
+  gameState.cur = { id:nextId, rot:0, x:3, y:0 };
+  if(checkCollision(gameState.cur.id, gameState.cur.rot, gameState.cur.x, gameState.cur.y)){
+    gameState.gameOver = true;
+  }
+  renderAll();
+}
+function doHold(){
+  if(!gameState.canHold || gameState.gameOver) return;
+  gameState.canHold = false;
+  const prev = gameState.holdPiece;
+  gameState.holdPiece = gameState.cur.id;
+  if(prev===null){
+    spawnNext();
+  }else{
+    gameState.cur = { id:prev, rot:0, x:3, y:0 };
+  }
+  renderAll();
+}
+// 移动
+function move(dx){
+  if(gameState.gameOver) return;
+  const c = gameState.cur;
+  if(!checkCollision(c.id, c.rot, c.x+dx, c.y)){
+    c.x += dx;
+    renderAll();
+  }
+}
+
+// 旋转逻辑：NES 风格墙踢偏移（Wall Kick）
+function rotate(){
+  if(gameState.gameOver) return;
+  const c = gameState.cur;
+  const nr = (c.rot + 1) % 4;
+  // NES 踢墙偏移：I 方块尝试更多偏移
+  const kicks = c.id === 0
+    ? [[0,0],[-1,0],[1,0],[-2,0],[2,0]]
+    : [[0,0],[-1,0],[1,0]];
+  for(const [dx,dy] of kicks){
+    if(!checkCollision(c.id, nr, c.x+dx, c.y+dy)){
+      c.rot = nr;
+      c.x += dx;
+      c.y += dy;
+      renderAll();
+      return;
+    }
+  }
+}
+
+function softDrop(){
+  if(gameState.gameOver) return;
+  const c = gameState.cur;
+  if(!checkCollision(c.id, c.rot, c.x, c.y+1)){
+    c.y +=1;
+    gameState.score +=1;
+    renderAll();
+  }else{
+    lockPiece();
+  }
+}
+function hardDrop(){
+  if(gameState.gameOver) return;
+  const gy = getGhostY();
+  gameState.score += (gy-gameState.cur.y)*2;
+  gameState.cur.y = gy;
+  lockPiece();
+}
+
+// 渲染全部画面：board + current piece + ghost + hold + next
+function renderAll(){
+  const colors = gameState.currentScene.pieces;
+  // 清空主棋盘DOM
+  const mainCells = Array.from(mainBoardEl.querySelectorAll('.cell'));
+  for(let i=0;i<mainCells.length;i++){
+    mainCells[i].className = 'cell empty';
+    mainCells[i].style.backgroundColor='';
+    mainCells[i].style.color='';
+  }
+  // 绘制静态已落下方块
+  for(let y=0;y<ROWS;y++){
+    for(let x=0;x<COLS;x++){
+      const pid = gameState.board[y][x];
+      if(pid>=0){
+        const idx = y*COLS +x;
+        const cell = mainCells[idx];
+        cell.classList.remove('empty');
+        cell.style.backgroundColor = colors[pid];
+        cell.style.color = colors[pid];
+      }
+    }
+  }
+  // 绘制ghost影子
+  const gy = getGhostY();
+  const cur = gameState.cur;
+  const ghostShape = SHAPES[cur.id][cur.rot];
+  for(let r=0;r<4;r++){
+    for(let c=0;c<4;c++){
+      if(!ghostShape[r][c]) continue;
+      const px = cur.x + c;
+      const py = gy + r;
+      if(py>=0 && py<ROWS && px>=0 && px<COLS){
+        const idx = py*COLS + px;
+        const cell = mainCells[idx];
+        if(gameState.board[py][px]===-1){
+          cell.classList.remove('empty');
+          cell.classList.add('ghost');
+          cell.style.backgroundColor = colors[cur.id];
+          cell.style.color = colors[cur.id];
+        }
+      }
+    }
+  }
+  // 绘制当前活动方块
+  const curShape = SHAPES[cur.id][cur.rot];
+  for(let r=0;r<4;r++){
+    for(let c=0;c<4;c++){
+      if(!curShape[r][c]) continue;
+      const px = cur.x + c;
+      const py = cur.y + r;
+      if(py>=0 && py<ROWS && px>=0 && px<COLS){
+        const idx = py*COLS + px;
+        const cell = mainCells[idx];
+        cell.classList.remove('empty','ghost');
+        cell.style.backgroundColor = colors[cur.id];
+        cell.style.color = colors[cur.id];
+      }
+    }
+  }
+  // 渲染hold
+  holdBoardEl.innerHTML='';
+  const holdMb = buildMiniBoard();
+  const holdCells = Array.from(holdMb.querySelectorAll('.cell'));
+  if(gameState.holdPiece!==null){
+    const sh = SHAPES[gameState.holdPiece][0]; //hold永远显示rot=0初始姿态
+    for(let r=0;r<4;r++){
+      for(let c=0;c<4;c++){
+        const idx = r*4 +c;
+        if(sh[r][c]){
+          holdCells[idx].classList.remove('empty');
+          holdCells[idx].style.backgroundColor = colors[gameState.holdPiece];
+          holdCells[idx].style.color = colors[gameState.holdPiece];
+        }
+      }
+    }
+  }
+  holdBoardEl.appendChild(holdMb);
+  // 渲染next队列
+  nextStackEl.innerHTML='';
+  for(const pid of [...gameState.nextQueue].reverse()){
+    const mb = buildMiniBoard();
+    const cs = Array.from(mb.querySelectorAll('.cell'));
+    const sh = SHAPES[pid][0]; //next预览永远用rot0初始形态
+    for(let r=0;r<4;r++){
+      for(let c=0;c<4;c++){
+        const idx = r*4 +c;
+        if(sh[r][c]){
+          cs[idx].classList.remove('empty');
+          cs[idx].style.backgroundColor = colors[pid];
+          cs[idx].style.color = colors[pid];
+        }
+      }
+    }
+    nextStackEl.appendChild(mb);
+  }
+  // game over overlay
+  gameOverlay.style.display = gameState.gameOver ? 'flex' : 'none';
+}
+function updateStatsUi(){
+  scoreVal.textContent = gameState.score;
+  linesVal.textContent = gameState.lines;
+  levelVal.textContent = gameState.level;
+}
+// ========== 多语言支持 ==========
+let currentLang = 'zh';
+const LANG = {
+  zh: {
+    score: '分数：',
+    lines: '消除行数：',
+    level: '等级：',
+    keymap: '← → 移动<br>↑ 旋转<br>↓ 软降<br>空格：硬降<br>C：Hold暂存<br>',
+    restartHint: '点下方按钮重启',
+    btnNewGame: '新游戏 / 重新开始',
+    btnLang: 'EN'
+  },
+  en: {
+    score: 'Score: ',
+    lines: 'Lines: ',
+    level: 'Level: ',
+    keymap: '← → Move<br>↑ Rotate<br>↓ Soft Drop<br>Space: Hard Drop<br>C: Hold<br>',
+    restartHint: 'Click button to restart',
+    btnNewGame: 'New Game / Restart',
+    btnLang: '中文'
+  }
+};
+function updateLanguage(){
+  const lang = LANG[currentLang];
+  document.querySelectorAll('[data-lang]').forEach(el => {
+    const key = el.getAttribute('data-lang');
+    if(lang[key] !== undefined){
+      if(key === 'keymap'){
+        el.innerHTML = lang[key];
+      } else {
+        el.textContent = lang[key];
+      }
+    }
+  });
+  document.getElementById('btnLang').textContent = lang.btnLang;
+}
+// 自动下落循环
+function tickDrop(){
+  if(gameState.gameOver){
+    clearInterval(gameState.dropTimer);
+    return;
+  }
+  softDrop();
+}
+// 应用场景（不显示场景名字）
+function applyScene(scene){
+  gameState.currentScene = scene;
+  bgMain.style.background = scene.bgGradient;
+  bgMain.style.animation = `slowPulse ${scene.pulseSpeed}s ease-in-out infinite alternate`;
+  renderAll();
+}
+// 获取随机场景
+function getRandomScene(){
+  const all = [...SCENES, RETRO_1984, RETRO_1989];
+  return all[Math.floor(Math.random() * all.length)];
+}
+// 新游戏重置
+function newGame(){
+  gameState.board = Array.from({length:ROWS}, ()=>Array(COLS).fill(-1));
+  gameState.score = 0;
+  gameState.lines =0;
+  gameState.level =1;
+  gameState.dropInterval = 1000;
+  gameState.gameOver = false;
+  gameState.bag = [];
+  gameState.nextQueue = [];
+  gameState.holdPiece = null;
+  gameState.canHold = true;
+  refillBag();
+  fillNextQueue();
+  // 每次新游戏随机场景
+  applyScene(getRandomScene());
+  spawnNext();
+  updateStatsUi();
+  clearInterval(gameState.dropTimer);
+  gameState.dropTimer = setInterval(tickDrop, gameState.dropInterval);
+}
+// 键盘
+document.addEventListener('keydown',(e)=>{
+  if(gameState.gameOver) return;
+  switch(e.key){
+    case 'ArrowLeft': move(-1);break;
+    case 'ArrowRight': move(1);break;
+    case 'ArrowUp': rotate();break;
+    case 'ArrowDown': softDrop();break;
+    case ' ': hardDrop();e.preventDefault();break;
+    case 'c': case 'C': doHold();break;
+  }
+})
+document.getElementById('btnNewGame').onclick = newGame;
+document.getElementById('btnLang').onclick = function(){
+  currentLang = currentLang === 'zh' ? 'en' : 'zh';
+  updateLanguage();
+};
+// 初始化
+initBoardDom();
+newGame();
+updateLanguage();
+</script>
+</body>
+</html>
