@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="light">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>游戏 - codejson.cn</title>
+  <link rel="stylesheet" href="../css/style.css?v=1.0" />
+  <link rel="stylesheet" href="../css/themes/light.css?v=1.0" />
+  <link rel="stylesheet" href="../css/themes/dark.css?v=1.0" />
+  <link rel="stylesheet" href="../css/themes/ocean.css?v=1.0" />
+  <script>
+    var _hmt = _hmt || [];
+    (function() {
+    var hm = document.createElement("script");
+    hm.src = "https://hm.baidu.com/hm.js?97abb4f3251f4cef59d6f3b8d246473c";
+    var s = document.getElementsByTagName("script")[0]; 
+    s.parentNode.insertBefore(hm, s);
+    })();
+  </script>
+  <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-2924816368457956"
+    crossorigin="anonymous">
+  </script>
+</head>
+<body>
+  <header class="site-header">
+    <nav class="nav">
+      <a href="/" class="logo">
+        <span class="logo-code">Code</span>
+        <span class="logo-json">Json</span>
+        <span class="logo-domain">.cn</span>
+      </a>
+      <div class="nav-links">
+        <a href="https://marketplace.visualstudio.com/items?itemName=zhanwangfeng.code-kit-for-vscode" target="_blank" rel="noopener" class="nav-item">VSCode 插件</a>
+        <a href="index.html" class="active">开源游戏</a>
+        <a href="../index.html" class="nav-item">工具箱</a>
+        <a href="../tools/hello-world/" class="nav-item">HelloWorld</a>
+        <div class="theme-switcher">
+          <button type="button" class="theme-btn" data-theme="light">浅色</button>
+          <button type="button" class="theme-btn" data-theme="dark">深色</button>
+          <button type="button" class="theme-btn" data-theme="ocean">海洋</button>
+        </div>
+      </div>
+    </nav>
+  </header>
+
+  <main class="container">
+    <div class="hero">
+      <h1>小游戏 <span class="accent">合集</span></h1>
+      <p>在线小游戏，无需安装，打开即玩</p>
+    </div>
+    <div class="search-bar">
+      <input type="text" class="search-input" id="searchInput" placeholder="关键字搜索" autofocus>
+    </div>
+    <div class="section-title">全部游戏</div>
+    <div class="tool-grid" id="gameGrid"></div>
+  </main>
+
+  <footer class="footer">
+    <div class="footer__container">
+      <div class="footer__left">
+        <p class="footer__copyright">© 2025 codejson.cn 版权所有 | <span class="footer__icp">沪ICP备2025145317号-1</span></p>
+      </div>
+      <div class="footer__right">
+        <ul class="footer__links">
+          <li class="footer__item"><a href="../about/" class="footer__link">关于我们</a></li>
+          <li class="footer__item"><a href="../about/privacy/" class="footer__link">隐私政策</a></li>
+          <li class="footer__item"><a href="../about/terms/" class="footer__link">使用条款</a></li>
+          <li class="footer__item"><a href="../about/contact/" class="footer__link">联系我们</a></li>
+          <li class="footer__item"><a href="../about/copyright/" class="footer__link">版权声明</a></li>
+        </ul>
+      </div>
+    </div>
+  </footer>
+
+  <script src="../js/theme.js?v=1.0"></script>
+  <script>
+    var games = [
+      { href: "tetris/", name: "俄罗斯方块", desc: "NES 经典风格俄罗斯方块，支持墙踢偏移与中英文切换" }
+    ];
+
+    var searchInput = document.getElementById("searchInput");
+
+    function renderGames(filter) {
+      var grid = document.getElementById("gameGrid");
+      grid.innerHTML = "";
+      var q = (filter || "").toLowerCase();
+      games.forEach(function (game) {
+        if (q && game.name.toLowerCase().indexOf(q) < 0) return;
+        var card = document.createElement("a");
+        card.className = "tool-card";
+        card.href = game.href;
+        card.innerHTML = "<h3>" + game.name + "</h3><p>" + game.desc + "</p>";
+        grid.appendChild(card);
+      });
+    }
+
+    searchInput.addEventListener("input", function () {
+      renderGames(this.value);
+    });
+
+    renderGames();
+  </script>
+</body>
+</html>
