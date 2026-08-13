@@ -4,13 +4,25 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>Tetris</title>
+<script>
+  var _hmt = _hmt || [];
+  (function() {
+  var hm = document.createElement("script");
+  hm.src = "https://hm.baidu.com/hm.js?97abb4f3251f4cef59d6f3b8d246473c";
+  var s = document.getElementsByTagName("script")[0]; 
+  s.parentNode.insertBefore(hm, s);
+  })();
+</script>
+<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-2924816368457956"
+  crossorigin="anonymous">
+</script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0;font-family:system-ui, sans-serif;}
 body{
   background:#000;
   color:#fff;
   min-height:100vh;
-  overflow:hidden;
+  overflow-y:auto;
   display:flex;
   flex-direction:column;
   align-items:center;
@@ -134,6 +146,20 @@ body{
 #btnNewGame:hover{
   background:#2c3446;
 }
+.ad-container{
+  margin-top:20px;
+  width:100%;
+  display:flex;
+  justify-content:center;
+  z-index:10;
+  position:relative;
+}
+.ad-container ins{
+  display:block;
+  width:728px;
+  max-width:100%;
+  min-height:90px;
+}
 </style>
 </head>
 <body>
@@ -173,6 +199,14 @@ body{
 <div class="bottom-btn-area">
   <button id="btnNewGame" data-lang="btnNewGame">新游戏 / 重新开始</button>
   <button id="btnLang" style="margin-left:10px;padding:10px 16px;background:#222836;color:#fff;border:1px solid #444c60;border-radius:6px;font-size:14px;cursor:pointer;">EN</button>
+</div>
+<div class="ad-container">
+  <ins class="adsbygoogle"
+       style="display:block"
+       data-ad-client="ca-pub-2924816368457956"
+       data-ad-slot=""
+       data-ad-format="horizontal"
+       data-full-width-responsive="true"></ins>
 </div>
 <script>
 // -------------------------- 场景配置（沿用之前模拟Tetris Effect）
@@ -675,6 +709,8 @@ document.getElementById('btnLang').onclick = function(){
 initBoardDom();
 newGame();
 updateLanguage();
+// 初始化固定位置广告
+try{ (adsbygoogle = window.adsbygoogle || []).push({}); }catch(e){}
 </script>
 </body>
 </html>
