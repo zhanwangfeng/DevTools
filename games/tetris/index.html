@@ -160,9 +160,29 @@ body{
   max-width:100%;
   min-height:90px;
 }
+.tetris-nav{
+  position:fixed;
+  top:0;
+  left:0;
+  z-index:100;
+  padding:10px 16px;
+}
+.tetris-nav-link{
+  color:#7cf;
+  text-decoration:none;
+  font-size:13px;
+  opacity:0.7;
+  transition:opacity 0.2s;
+}
+.tetris-nav-link:hover{
+  opacity:1;
+}
 </style>
 </head>
 <body>
+<div class="tetris-nav">
+  <a href="../" class="tetris-nav-link">← 开源游戏</a>
+</div>
 <div class="page-title" data-lang="pageTitle">Tetris</div>
 <div class="viewport">
   <div class="bg-canvas">
