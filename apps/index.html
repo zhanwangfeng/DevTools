@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>应用 - codejson.cn</title>
+  <title>开源项目 - codejson.cn</title>
   <link rel="stylesheet" href="../css/style.css?v=1.0" />
   <link rel="stylesheet" href="../css/themes/light.css?v=1.0" />
   <link rel="stylesheet" href="../css/themes/dark.css?v=1.0" />
@@ -30,10 +30,11 @@
         <span class="logo-domain">.cn</span>
       </a>
       <div class="nav-links">
-        <a href="https://marketplace.visualstudio.com/items?itemName=zhanwangfeng.code-kit-for-vscode" target="_blank" rel="noopener" class="nav-item">VSCode 插件</a>
+        <a href="https://marketplace.visualstudio.com/publishers/zhanwangfeng" target="_blank" rel="noopener" class="nav-item">VSCode 插件</a>
         <a href="../games/" class="nav-item">开源游戏</a>
+        <a href="index.html" class="active">开源项目</a>
         <a href="../index.html" class="nav-item">工具箱</a>
-        <a href="index.html" class="active">应用</a>
+        <a href="../tools/hello-world/" class="nav-item">HelloWorld</a>
         <div class="theme-switcher">
           <button type="button" class="theme-btn" data-theme="light">浅色</button>
           <button type="button" class="theme-btn" data-theme="dark">深色</button>
@@ -45,13 +46,13 @@
 
   <main class="container">
     <div class="hero">
-      <h1>实用 <span class="accent">应用</span></h1>
-      <p>精选工具类应用，覆盖编码与开发场景</p>
+      <h1>开源 <span class="accent">项目</span></h1>
+      <p>精选工具类开源项目，覆盖编码与开发场景</p>
     </div>
     <div class="search-bar">
       <input type="text" class="search-input" id="searchInput" placeholder="关键字搜索" autofocus>
     </div>
-    <div class="section-title">全部应用</div>
+    <div class="section-title">全部开源项目</div>
     <div class="tool-grid" id="appGrid"></div>
   </main>
 
@@ -78,6 +79,7 @@
       {
         name: "CodeKit",
         icon: "CK",
+        type: "vscode-tool",
         desc: "VSCode 全能开发工具包，提升编码效率",
         github: "https://github.com/zhanwangfeng/CodeKitForVSCode",
         vscode: "https://marketplace.visualstudio.com/items?itemName=zhanwangfeng.code-kit-for-vscode",
@@ -89,6 +91,7 @@
       {
         name: "LogFilter",
         icon: "LF",
+        type: "vscode-tool",
         desc: "VSCode 日志过滤工具，快速定位关键信息",
         github: "https://github.com/zhanwangfeng/LogFilterForVSCode",
         vscode: "https://marketplace.visualstudio.com/items?itemName=zhanwangfeng.logfilterpro",
@@ -100,6 +103,7 @@
       {
         name: "Tetris",
         icon: "TR",
+        type: "vscode-game",
         desc: "VSCode 俄罗斯方块，编码之余放松一下",
         github: "https://github.com/zhanwangfeng/TetrisForVSCode",
         vscode: "https://marketplace.visualstudio.com/items?itemName=zhanwangfeng.tetris-pro",
@@ -107,10 +111,24 @@
           { label: "VS Marketplace", img: "https://vsmarketplacebadges.dev/version-short/zhanwangfeng.tetris-pro.svg", href: "https://marketplace.visualstudio.com/items?itemName=zhanwangfeng.tetris-pro" },
           { label: "Installs", img: "https://vsmarketplacebadges.dev/installs/zhanwangfeng.tetris-pro.svg", href: "https://marketplace.visualstudio.com/items?itemName=zhanwangfeng.tetris-pro" }
         ]
+      },
+      {
+        name: "CodeJson",
+        icon: "CJ",
+        type: "website",
+        desc: "开发者工具箱开源项目，集成 JSON 解析、编解码、哈希等实用工具",
+        github: "https://github.com/zhanwangfeng/DevTools",
+        website: "https://codejson.cn/",
       }
     ];
 
     var searchInput = document.getElementById("searchInput");
+
+    var typeColors = {
+      "vscode-tool": "app-icon--vscode-tool",
+      "vscode-game": "app-icon--vscode-game",
+      "website": "app-icon--website"
+    };
 
     function renderApps(filter) {
       var grid = document.getElementById("appGrid");
@@ -123,16 +141,22 @@
         var badgesHtml = (app.badges || []).map(function (b) {
           return '<a href="' + b.href + '" target="_blank" rel="noopener"><img src="' + b.img + '" alt="' + b.label + '" /></a>';
         }).join("");
+        var primaryHref = app.vscode || app.website || app.github;
+        var linksHtml = '<a href="' + app.github + '" target="_blank" rel="noopener">GitHub</a>';
+        if (app.vscode) {
+          linksHtml += '<a href="' + app.vscode + '" target="_blank" rel="noopener">VSCode 市场</a>';
+        }
+        if (app.website) {
+          linksHtml += '<a href="' + app.website + '" target="_blank" rel="noopener">官网</a>';
+        }
+        var iconClass = "app-icon " + (typeColors[app.type] || "");
         card.innerHTML =
           '<div class="app-card-head">' +
-            '<div class="app-icon">' + app.icon + '</div>' +
-            '<h3><a href="' + app.vscode + '" target="_blank" rel="noopener">' + app.name + '</a></h3>' +
+            '<div class="' + iconClass + '">' + app.icon + '</div>' +
+            '<h3><a href="' + primaryHref + '" target="_blank" rel="noopener">' + app.name + '</a></h3>' +
           '</div>' +
           '<p>' + app.desc + '</p>' +
-          '<div class="app-links">' +
-            '<a href="' + app.github + '" target="_blank" rel="noopener">GitHub</a>' +
-            '<a href="' + app.vscode + '" target="_blank" rel="noopener">VSCode 市场</a>' +
-          '</div>' +
+          '<div class="app-links">' + linksHtml + '</div>' +
           '<div class="app-badges">' + badgesHtml + '</div>';
         grid.appendChild(card);
       });
