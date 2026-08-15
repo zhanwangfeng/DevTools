@@ -639,16 +639,38 @@ select:focus {
   margin-bottom: 10px;
 }
 
+/* nav-links 由 nav.js 延迟注入，桌面端靠右排列，theme-switcher 独立于链接 */
+.nav .nav-links {
+  margin-left: auto;
+}
+.nav .theme-switcher {
+  margin-left: 20px;
+}
+
 /* Responsive */
+@media (max-width: 768px) {
+  .nav {
+    flex-wrap: wrap;
+    height: auto;
+    padding-top: 8px;
+    padding-bottom: 8px;
+    row-gap: 6px;
+  }
+  .nav .nav-links {
+    order: 3;
+    flex: 1 0 100%;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 6px 16px;
+    margin-left: 0;
+  }
+  .nav .theme-switcher {
+    order: 2;
+    margin-left: auto;
+  }
+}
+
 @media (max-width: 640px) {
-  .nav-links {
-    gap: 12px;
-  }
-
-  .nav-links .nav-item:nth-child(n + 3) {
-    display: none;
-  }
-
   .hero h1 {
     font-size: 24px;
   }
