@@ -5,7 +5,6 @@
     { key: "games", href: "/games/", text: "开源游戏" },
     { key: "apps", href: "/apps/", text: "开源项目" },
     { key: "tools", href: "/index.html", text: "工具箱" },
-    { key: "helloworld", href: "/tools/hello-world/", text: "HelloWorld" }
   ];
 
   function renderNavLinks() {
