@@ -137,13 +137,13 @@ a:hover {
 /* Hero */
 .hero {
   text-align: center;
-  padding: 48px 0 40px;
+  padding: 28px 0 22px;
 }
 
 .hero h1 {
-  font-size: 34px;
+  font-size: 30px;
   font-weight: 800;
-  margin-bottom: 12px;
+  margin-bottom: 8px;
 }
 
 .hero h1 .accent {
@@ -152,7 +152,7 @@ a:hover {
 
 .hero p {
   color: var(--text-secondary);
-  font-size: 16px;
+  font-size: 15px;
   max-width: 520px;
   margin: 0 auto;
 }
@@ -650,7 +650,7 @@ select:focus {
   }
 
   .hero h1 {
-    font-size: 26px;
+    font-size: 24px;
   }
 
   .theme-btn {
