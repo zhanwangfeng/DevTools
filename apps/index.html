@@ -77,6 +77,7 @@
     var apps = [
       {
         name: "CodeKit",
+        icon: "CK",
         desc: "VSCode 全能开发工具包，提升编码效率",
         github: "https://github.com/zhanwangfeng/CodeKitForVSCode",
         vscode: "https://marketplace.visualstudio.com/items?itemName=zhanwangfeng.code-kit-for-vscode",
@@ -87,6 +88,7 @@
       },
       {
         name: "LogFilter",
+        icon: "LF",
         desc: "VSCode 日志过滤工具，快速定位关键信息",
         github: "https://github.com/zhanwangfeng/LogFilterForVSCode",
         vscode: "https://marketplace.visualstudio.com/items?itemName=zhanwangfeng.logfilterpro",
@@ -97,6 +99,7 @@
       },
       {
         name: "Tetris",
+        icon: "TR",
         desc: "VSCode 俄罗斯方块，编码之余放松一下",
         github: "https://github.com/zhanwangfeng/TetrisForVSCode",
         vscode: "https://marketplace.visualstudio.com/items?itemName=zhanwangfeng.tetris-pro",
@@ -121,7 +124,10 @@
           return '<a href="' + b.href + '" target="_blank" rel="noopener"><img src="' + b.img + '" alt="' + b.label + '" /></a>';
         }).join("");
         card.innerHTML =
-          '<h3><a href="' + app.vscode + '" target="_blank" rel="noopener">' + app.name + '</a></h3>' +
+          '<div class="app-card-head">' +
+            '<div class="app-icon">' + app.icon + '</div>' +
+            '<h3><a href="' + app.vscode + '" target="_blank" rel="noopener">' + app.name + '</a></h3>' +
+          '</div>' +
           '<p>' + app.desc + '</p>' +
           '<div class="app-links">' +
             '<a href="' + app.github + '" target="_blank" rel="noopener">GitHub</a>' +
