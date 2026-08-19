@@ -97,6 +97,12 @@
     <priority>0.6</priority>
   </url>
   <url>
+    <loc>https://codejson.cn/games/mines/</loc>
+    <lastmod>2026-08-19</lastmod>
+    <changefreq>yearly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
     <loc>https://codejson.cn/about/</loc>
     <lastmod>2026-08-09</lastmod>
     <changefreq>yearly</changefreq>
