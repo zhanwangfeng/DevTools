@@ -1,0 +1,878 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>推箱子 - 90关 - codejson.cn</title>
+
+<script>
+  var _hmt = _hmt || [];
+  (function() {
+  var hm = document.createElement("script");
+  hm.src = "https://hm.baidu.com/hm.js?97abb4f3251f4cef59d6f3b8d246473c";
+  var s = document.getElementsByTagName("script")[0]; 
+  s.parentNode.insertBefore(hm, s);
+  })();
+</script>
+<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-2924816368457956"
+  crossorigin="anonymous">
+</script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;font-family:system-ui, sans-serif;}
+body{
+  background:#000;
+  color:#fff;
+  min-height:100vh;
+  overflow-x:auto;
+  overflow-y:auto;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+}
+/* ========== push_box 游戏专用样式（Tetris 风格） ========== */
+.push-box-game .clearfix:after{
+  content:"";
+  display:table;
+  clear:both;
+}
+/* 游戏容器 - 玻璃态暗色风格 */
+.push-box-game .mine-wrap{
+  background:rgba(0,0,0,0.25);
+  display:inline-block;
+  border:1px solid rgba(255,255,255,0.12);
+  border-radius:14px;
+  padding:20px;
+}
+
+/* 返回按钮（fixed 左上角） */
+.push-box-game .nav-back{
+  position:fixed;
+  top:0;
+  left:0;
+  z-index:100;
+  padding:12px 16px;
+  display:flex;
+  gap:8px;
+}
+.push-box-game .nav-back-link{
+  color:#7cf;
+  text-decoration:none;
+  font-size:13px;
+  opacity:0.75;
+  transition:opacity 0.2s, background 0.2s, transform 0.2s;
+  padding:7px 14px;
+  background:rgba(0,0,0,0.4);
+  border:1px solid rgba(255,255,255,0.14);
+  border-radius:8px;
+  backdrop-filter:blur(4px);
+  white-space:nowrap;
+}
+.push-box-game .nav-back-link:hover{
+  opacity:1;
+  background:rgba(16,32,64,0.6);
+  transform:translateY(-1px);
+}
+/* 游戏区域 */
+.push-box-game .mine-con{
+  background:rgba(0,0,0,0.3);
+  padding:12px;
+  border-radius:10px;
+  border:none;
+}
+/* 信息面板（状态栏） */
+.push-box-game .game-tags{
+  background:rgba(0,0,0,0.2);
+  border-radius:8px;
+  border:1px solid rgba(255,255,255,0.06);
+  padding:8px 16px;
+  text-align:center;
+  position:relative;
+  margin-bottom:8px;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+}
+.push-box-game .game-tag-left{
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  gap:2px;
+  min-width:60px;
+}
+.push-box-game .game-tag-right{
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  gap:2px;
+  min-width:60px;
+}
+.push-box-game .panel-label{
+  color:#b8d8ff;
+  font-size:11px;
+  text-align:center;
+  opacity:0.8;
+  letter-spacing:1px;
+  text-transform:uppercase;
+}
+.push-box-game .stat-value{
+  color:#7cf;
+  font-size:22px;
+  font-weight:bold;
+  font-family:"Courier New", "Consolas", monospace;
+  letter-spacing:3px;
+  text-shadow:0 0 12px rgba(100,200,255,0.3), 0 0 4px rgba(100,200,255,0.15);
+}
+/* 状态栏中心按钮区 */
+.push-box-game .game-tag-center{
+  display:flex;
+  gap:6px;
+  align-items:center;
+  padding:0 12px;
+  border-left:1px solid rgba(255,255,255,0.08);
+  border-right:1px solid rgba(255,255,255,0.08);
+}
+.push-box-game .game-tag-btn{
+  padding:5px 12px;
+  background:rgba(34,40,54,0.6);
+  color:#c8d8f0;
+  border:1px solid rgba(255,255,255,0.1);
+  border-radius:6px;
+  font-size:12px;
+  cursor:pointer;
+  transition:all 0.2s;
+  user-select:none;
+  white-space:nowrap;
+}
+.push-box-game .game-tag-btn:hover{
+  background:rgba(44,52,70,0.8);
+  border-color:rgba(100,200,255,0.3);
+  color:#fff;
+  box-shadow:0 0 10px rgba(100,200,255,0.1);
+}
+.push-box-game .game-tag-btn:active{
+  transform:scale(0.95);
+}
+/* 音效按钮（带图标） */
+.push-box-game .game-tag-btn.sound-btn{
+  font-size:15px;
+  padding:5px 10px;
+  line-height:1;
+}
+/* 按钮禁用状态 */
+.push-box-game .game-tag-btn.disabled{
+  opacity:0.35;
+  cursor:not-allowed;
+  pointer-events:none;
+}
+.push-box-game .game-tag-level{
+  color:#7cf;
+  font-size:22px;
+  font-weight:bold;
+  padding:0 8px;
+  min-width:36px;
+  text-align:center;
+  font-family:"Courier New", monospace;
+  text-shadow:0 0 12px rgba(100,200,255,0.3);
+}
+/* 游戏标题 */
+.push-box-game .game-title{
+  text-align:center;
+  margin-top:16px;
+  margin-bottom:12px;
+}
+.push-box-game .game-title .title-main{
+  display:block;
+  font-size:20px;
+  font-weight:bold;
+  color:#e8f0ff;
+  letter-spacing:2px;
+}
+/* 状态栏关卡标签 */
+.push-box-game .game-tag-level-wrap{
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  gap:2px;
+}
+.push-box-game .game-tag-level-wrap .panel-label{
+  margin-bottom:0;
+}
+/* 游戏画布 */
+.push-box-game .mine-canvas{
+  border:2px solid rgba(255,255,255,0.08);
+  border-radius:6px;
+  display:inline-block;
+  position:relative;
+}
+.push-box-game .mine-con{
+  position:relative;
+}
+.push-box-game .mine-canvas-wrap{
+  position:relative;
+  display:inline-block;
+}
+/* 胜利遮罩 */
+.push-box-game .win-overlay{
+  position:absolute;
+  inset:0;
+  background:rgba(0,0,0,0.7);
+  z-index:20;
+  display:none;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  border-radius:6px;
+}
+.push-box-game .win-overlay.show{
+  display:flex;
+}
+.push-box-game .win-overlay .win-title{
+  font-size:28px;
+  color:#7cf;
+  font-weight:bold;
+  text-shadow:0 0 20px rgba(100,200,255,0.5);
+  margin-bottom:8px;
+}
+.push-box-game .win-overlay .win-hint{
+  font-size:14px;
+  color:#b8d8ff;
+  opacity:0.7;
+}
+/* 格子样式 */
+.push-box-game .mine-canvas > div{
+  display:flex;
+}
+.push-box-game .cell{
+  width:40px;
+  height:40px;
+  flex-shrink:0;
+  display:block;
+  text-align:center;
+  line-height:40px;
+  cursor:pointer;
+  border-radius:3px;
+}
+.push-box-game .cell_box{
+  background:url(res/push_box_box.png);
+  background-size:40px;
+  box-shadow:0 0 8px rgba(255,200,0,0.4);
+}
+.push-box-game .cell_box_tar{
+  background:url(res/push_box_box_ok.png);
+  background-size:40px;
+  box-shadow:0 0 8px rgba(0,255,100,0.5);
+}
+.push-box-game .cell_ground{
+  background:url(res/push_box_ground.png);
+  background-size:40px;
+}
+.push-box-game .cell_wall{
+  background:url(res/push_box_wall.png);
+  background-size:40px;
+  box-shadow:0 0 6px rgba(255,255,255,0.08);
+}
+.push-box-game .cell_man{
+  background:url(res/push_box_man.png);
+  background-size:40px;
+  box-shadow:0 0 10px rgba(100,200,255,0.5);
+}
+.push-box-game .cell_target{
+  background:url(res/push_box_target.png);
+  background-size:40px;
+  box-shadow:0 0 8px rgba(255,100,100,0.3);
+}
+.push-box-game .mr5{
+  margin-right:5px;
+}
+</style>
+</head>
+<body>
+  <div class="push-box-game">
+    <div class="nav-back">
+      <a href="../" class="nav-back-link">←</a>
+    </div>
+    <div class="game-title">
+      <span class="title-main">推箱子</span>
+    </div>
+    <div class="mine-wrap" id="mineWrap">
+      <div class="mine-main clearfix">
+        <div class="mine-con">
+          <div class="game-tags">
+            <div class="game-tag-left">
+              <span class="panel-label">剩余</span>
+              <span class="stat-value" id="boxLeftVal">000</span>
+            </div>
+            <div class="game-tag-center">
+              <span class="game-tag-btn" id="btnPrev">上一关</span>
+              <div class="game-tag-level-wrap">
+                <span class="panel-label">关卡</span>
+                <span class="game-tag-level" id="levelLabel">1</span>
+              </div>
+              <span class="game-tag-btn" id="btnNext">下一关</span>
+              <span class="game-tag-btn" id="btnReset">重置</span>
+              <span class="game-tag-btn sound-btn" id="btnSfx">🔊</span>
+              <span class="game-tag-btn" id="btnUndo">↩</span>
+            </div>
+            <div class="game-tag-right">
+              <span class="panel-label">用时</span>
+              <span class="stat-value" id="timeVal">000</span>
+            </div>
+          </div>
+          <div class="mine-canvas-wrap">
+            <div class="mine-canvas" id="mineCanvas"></div>
+            <div class="win-overlay" id="winOverlay">
+              <div class="win-title">恭喜过关</div>
+              <div class="win-hint">即将进入下一关</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <!-- 固定位置广告 -->
+    <div style="margin-top:20px;width:100%;max-width:505px;">
+      <ins class="adsbygoogle" style="display:block" data-ad-client="ca-pub-2924816368457956" data-ad-slot="1214720725" data-ad-format="auto" data-full-width-responsive="true"></ins>
+    </div>
+  </div>
+
+  <script>
+//# 1:wall  @ 2:man  $ 3:box  . 4:target  (space) 5:ground  ! 6:man_tar  * 7:box_tar
+(function(){
+  'use strict';
+
+  // ========== 音效系统（Web Audio 振荡器合成） ==========
+  const Sound = (function(){
+    var ctx = null;
+    var LS = 'push_box.sfxOn';
+    var sfxOn = localStorage.getItem(LS) !== 'false';
+    function ensure(){
+      if(!ctx){
+        var AC = window.AudioContext || window.webkitAudioContext;
+        if(AC) ctx = new AC();
+      }
+      if(ctx && ctx.state === 'suspended') ctx.resume();
+      return ctx;
+    }
+    function tone(freq, dur, type, vol, when){
+      var c = ensure();
+      if(!c || !sfxOn) return;
+      var t0 = c.currentTime + (when || 0);
+      var osc = c.createOscillator();
+      var gain = c.createGain();
+      osc.type = type || 'square';
+      osc.frequency.setValueAtTime(freq, t0);
+      gain.gain.setValueAtTime(0.0001, t0);
+      gain.gain.exponentialRampToValueAtTime(vol || 0.12, t0 + 0.01);
+      gain.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
+      osc.connect(gain).connect(c.destination);
+      osc.start(t0);
+      osc.stop(t0 + dur + 0.02);
+    }
+    function sweep(f1, f2, dur, type, vol){
+      var c = ensure();
+      if(!c || !sfxOn) return;
+      var t0 = c.currentTime;
+      var osc = c.createOscillator();
+      var gain = c.createGain();
+      osc.type = type || 'sawtooth';
+      osc.frequency.setValueAtTime(f1, t0);
+      osc.frequency.exponentialRampToValueAtTime(f2, t0 + dur);
+      gain.gain.setValueAtTime(vol || 0.14, t0);
+      gain.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
+      osc.connect(gain).connect(c.destination);
+      osc.start(t0);
+      osc.stop(t0 + dur + 0.02);
+    }
+    return {
+      unlock: ensure,
+      setSfx: function(on){
+        sfxOn = !!on;
+        localStorage.setItem(LS, sfxOn ? 'true' : 'false');
+        return sfxOn;
+      },
+      isSfxOn: function(){ return sfxOn; },
+      move: function(){ tone(200, 0.06, 'triangle', 0.08); },
+      push: function(){ tone(280, 0.08, 'square', 0.10); },
+      win: function(){
+        [523, 659, 784, 1047].forEach(function(f,i){ tone(f, 0.18, 'square', 0.12, i*0.12); });
+      },
+      click: function(){ tone(400, 0.04, 'square', 0.06); }
+    };
+  })();
+
+  const game = {
+    cellSize: 40,
+    line: 0,
+    column: 0,
+    cells: [],
+    cellEls: [],
+    gameOver: false,
+    win: false,
+    disabled: false,
+    runTime: 0,
+    leftBox: 0,
+    curLevel: 1,
+    maxLevel: 90,
+    levelCache: {},
+    timerId: null,
+    downloading: false,
+    undoStack: [],
+    winTimer: null,
+
+    // DOM refs
+    canvas: document.getElementById('mineCanvas'),
+    winOverlay: document.getElementById('winOverlay'),
+    boxLeftVal: document.getElementById('boxLeftVal'),
+    timeVal: document.getElementById('timeVal'),
+    levelLabel: document.getElementById('levelLabel'),
+
+    async init(){
+      this.bindEvents();
+      this.updateUndoBtn();
+      await this.loadLevel(1);
+    },
+
+    bindEvents(){
+      document.addEventListener('keydown', (e) => this.onKeyDown(e));
+      document.getElementById('btnPrev').onclick = () => {
+        if(this.disabled) return;
+        Sound.click();
+        this.goLevel(-1);
+      };
+      document.getElementById('btnNext').onclick = () => {
+        if(this.disabled) return;
+        Sound.click();
+        this.goLevel(1);
+      };
+      document.getElementById('btnReset').onclick = () => {
+        if(this.disabled) return;
+        Sound.click();
+        this.reset();
+      };
+      document.getElementById('btnUndo').onclick = () => {
+        if(this.disabled) return;
+        Sound.click();
+        this.undo();
+      };
+      document.getElementById('btnSfx').onclick = function(){
+        var on = Sound.setSfx(!Sound.isSfxOn());
+        this.textContent = on ? '🔊' : '🔇';
+      };
+    },
+
+    setDisabled(val){
+      this.disabled = val;
+      var btns = document.querySelectorAll('.game-tag-btn');
+      btns.forEach(function(btn){
+        if(val) btn.classList.add('disabled');
+        else btn.classList.remove('disabled');
+      });
+      // 退出禁用模式时，撤销按钮按栈状态恢复
+      if(!val) this.updateUndoBtn();
+    },
+
+    updateUndoBtn(){
+      var btn = document.getElementById('btnUndo');
+      if(this.undoStack.length === 0) btn.classList.add('disabled');
+      else btn.classList.remove('disabled');
+    },
+
+    onKeyDown(e){
+      if(this.gameOver || this.disabled) return;
+      const man = this.findManCell();
+      if(!man) return;
+      let target = null;
+      switch(e.key){
+        case 'ArrowUp':    target = this.getCell(man.idxL-1, man.idxC); break;
+        case 'ArrowDown':  target = this.getCell(man.idxL+1, man.idxC); break;
+        case 'ArrowLeft':  target = this.getCell(man.idxL, man.idxC-1); break;
+        case 'ArrowRight': target = this.getCell(man.idxL, man.idxC+1); break;
+        default: return;
+      }
+      e.preventDefault();
+      if(target) this.cellClick(target);
+    },
+
+    async goLevel(step){
+      var n = this.curLevel + step;
+      if(n < 1) n = this.maxLevel;
+      if(n > this.maxLevel) n = 1;
+      if(n === this.curLevel) return;
+      await this.loadLevel(n);
+    },
+
+    async loadLevel(num){
+      // 清理状态
+      if(this.winTimer){
+        clearTimeout(this.winTimer);
+        this.winTimer = null;
+      }
+      this.winOverlay.classList.remove('show');
+      this.undoStack = [];
+      this.setDisabled(false);
+      this.updateUndoBtn();
+
+      this.curLevel = num;
+      this.levelLabel.textContent = num;
+
+      if(!this.levelCache[num]){
+        this.downloading = true;
+        try {
+          var resp = await fetch('levels/screen.' + num);
+          var text = await resp.text();
+          this.levelCache[num] = this.parseLevel(text);
+        } catch(e){
+          console.error('加载关卡失败:', num, e);
+          this.downloading = false;
+          return;
+        }
+        this.downloading = false;
+      }
+
+      var ld = this.levelCache[num];
+      this.line = ld.h;
+      this.column = ld.w;
+      this.runTime = 0;
+      this.gameOver = false;
+      this.win = false;
+
+      // 重建 cells
+      this.cells = [];
+      for(var i=0; i<this.line; i++){
+        var row = [];
+        for(var j=0; j<this.column; j++){
+          row.push({
+            idxL: i,
+            idxC: j,
+            type: ld.d[i][j],
+            canMove: false,
+          });
+        }
+        this.cells.push(row);
+      }
+
+      this.renderGrid();
+      this.refreshAllMovable();
+      this.checkWin();
+      this.updateStatus();
+      this.clearTimer();
+    },
+
+    parseLevel(text){
+      var strings = text.split('\n');
+      var numbers = [];
+      var maxW = 0;
+      for(var i=0; i<strings.length; i++){
+        var s = strings[i];
+        if(s.trim() === '') continue;
+        var line = [];
+        for(var j=0; j<s.length; j++){
+          var c = s.charAt(j);
+          if(c === '#') line.push(1);
+          else if(c === '$') line.push(3);
+          else if(c === '@') line.push(2);
+          else if(c === '.') line.push(4);
+          else if(c === '!') line.push(6);
+          else if(c === '*') line.push(7);
+          else line.push(5);
+        }
+        numbers.push(line);
+        if(line.length > maxW) maxW = line.length;
+      }
+      for(var i=0; i<numbers.length; i++){
+        while(numbers[i].length < maxW) numbers[i].push(5);
+      }
+      return { d: numbers, h: numbers.length, w: maxW };
+    },
+
+    renderGrid(){
+      this.canvas.innerHTML = '';
+      this.cellEls = [];
+      for(var i=0; i<this.line; i++){
+        var rowDiv = document.createElement('div');
+        var rowEls = [];
+        for(var j=0; j<this.column; j++){
+          var cell = this.cells[i][j];
+          var div = document.createElement('div');
+          div.className = this.getCellClass(cell);
+          div.dataset.l = i;
+          div.dataset.c = j;
+          rowDiv.appendChild(div);
+          rowEls.push(div);
+        }
+        this.canvas.appendChild(rowDiv);
+        this.cellEls.push(rowEls);
+      }
+    },
+
+    getCellClass(cell){
+      if(cell.type === 1) return 'cell cell_wall';
+      if(cell.type === 2 || cell.type === 6) return 'cell cell_man';
+      if(cell.type === 3) return 'cell cell_box';
+      if(cell.type === 4) return 'cell cell_target';
+      if(cell.type === 5) return 'cell cell_ground';
+      if(cell.type === 7) return 'cell cell_box_tar';
+      return 'cell';
+    },
+
+    updateCellClass(cell){
+      if(this.cellEls[cell.idxL] && this.cellEls[cell.idxL][cell.idxC]){
+        this.cellEls[cell.idxL][cell.idxC].className = this.getCellClass(cell);
+      }
+    },
+
+    // ---- 游戏逻辑（保持原样） ----
+    getCell(idxL, idxC){
+      if(idxL < 0 || idxL >= this.line) return null;
+      if(idxC < 0 || idxC >= this.column) return null;
+      return this.cells[idxL][idxC];
+    },
+
+    findManCell(){
+      for(var l=0; l<this.line; l++)
+        for(var c=0; c<this.column; c++)
+          if(this.cells[l][c].type === 2 || this.cells[l][c].type === 6)
+            return this.cells[l][c];
+      return null;
+    },
+
+    cellIsMan(cell){
+      if(!cell) return false;
+      return cell.type === 2 || cell.type === 6;
+    },
+
+    cellIsBox(cell){
+      if(!cell) return false;
+      return cell.type === 3 || cell.type === 7;
+    },
+
+    cellIsEmpty(cell){
+      if(!cell) return false;
+      return cell.type === 5 || cell.type === 4;
+    },
+
+    cellChangeToBox(cell){
+      if(!cell) return;
+      if(cell.type === 4) cell.type = 7;
+      else if(cell.type === 5) cell.type = 3;
+    },
+
+    cellChangeToMan(cell){
+      if(!cell) return;
+      if(cell.type === 4) cell.type = 6;
+      else if(cell.type === 5) cell.type = 2;
+    },
+
+    cellChangeToEmpty(cell){
+      if(!cell) return;
+      if(cell.type === 2 || cell.type === 3) cell.type = 5;
+      else if(cell.type === 6 || cell.type === 7) cell.type = 4;
+    },
+
+    getPushBoxToCell(manCell, boxCell){
+      if(!this.cellIsMan(manCell)) return null;
+      if(!this.cellIsBox(boxCell)) return null;
+      var dL = boxCell.idxL - manCell.idxL;
+      var dC = boxCell.idxC - manCell.idxC;
+      if(dL !== 0 && dC !== 0) return null;
+      if(dL === 1 || dL === -1){
+        var cell = this.getCell(boxCell.idxL + dL, boxCell.idxC);
+        if(this.cellIsEmpty(cell)) return cell;
+      } else if(dC === 1 || dC === -1){
+        var cell = this.getCell(boxCell.idxL, boxCell.idxC + dC);
+        if(this.cellIsEmpty(cell)) return cell;
+      }
+      return null;
+    },
+
+    manIsLine(manCell, cellTarget){
+      if(!manCell || !cellTarget) return false;
+      if(manCell.type !== 2 && manCell.type !== 6) return false;
+      if(cellTarget.type !== 5 && cellTarget.type !== 4) return false;
+      return cellTarget.canMove;
+    },
+
+    refreshCellMovable(cell){
+      if(!cell) return;
+      if(cell.canMove) return;
+      if(this.cellIsMan(cell) || this.cellIsEmpty(cell)){
+        cell.canMove = true;
+        this.refreshCellMovable(this.getCell(cell.idxL,   cell.idxC+1));
+        this.refreshCellMovable(this.getCell(cell.idxL,   cell.idxC-1));
+        this.refreshCellMovable(this.getCell(cell.idxL+1, cell.idxC));
+        this.refreshCellMovable(this.getCell(cell.idxL-1, cell.idxC));
+      }
+    },
+
+    refreshAllMovable(){
+      for(var i=0; i<this.line; i++)
+        for(var j=0; j<this.column; j++)
+          this.cells[i][j].canMove = false;
+      var man = this.findManCell();
+      this.refreshCellMovable(man);
+      this.refreshAllCellClass();
+    },
+
+    refreshAllCellClass(){
+      for(var l=0; l<this.line; l++)
+        for(var c=0; c<this.column; c++)
+          this.updateCellClass(this.cells[l][c]);
+    },
+
+    cellClick(cell){
+      if(!cell || this.gameOver || this.disabled) return;
+      var man = this.findManCell();
+      if(!man) return;
+
+      // 点击空地 -> 移动
+      if(this.manIsLine(man, cell)){
+        if(cell.type === 4) cell.type = 6;
+        else cell.type = 2;
+        if(man.type === 6) man.type = 4;
+        else man.type = 5;
+        this.updateCellClass(man);
+        this.updateCellClass(cell);
+        this.createTimerIfNone();
+        Sound.move();
+        return;
+      }
+
+      // 推箱子
+      var pushTo = this.getPushBoxToCell(man, cell);
+      if(pushTo){
+        // 记录推箱子步骤（用于撤销）
+        this.undoStack.push({
+          manL: man.idxL, manC: man.idxC, manType: man.type,
+          boxL: cell.idxL, boxC: cell.idxC, boxType: cell.type,
+          targetL: pushTo.idxL, targetC: pushTo.idxC, targetType: pushTo.type
+        });
+        this.cellChangeToEmpty(man);
+        this.cellChangeToEmpty(cell);
+        this.cellChangeToEmpty(pushTo);
+        this.cellChangeToMan(cell);
+        this.cellChangeToBox(pushTo);
+        this.refreshAllMovable();
+        this.createTimerIfNone();
+        Sound.push();
+        this.updateUndoBtn();
+        this.checkWin();
+      }
+    },
+
+    checkWin(){
+      if(this.gameOver) return;
+      var left = 0;
+      for(var i=0; i<this.line; i++)
+        for(var j=0; j<this.column; j++)
+          if(this.cells[i][j].type === 3) left++;
+      this.leftBox = left;
+      if(left === 0) this.gameOverHandler(true);
+      this.updateStatus();
+    },
+
+    gameOverHandler(win){
+      if(this.gameOver) return;
+      this.gameOver = true;
+      this.win = win;
+      this.clearTimer();
+      this.refreshAllCellClass();
+      this.updateStatus();
+      if(win){
+        Sound.win();
+        // 显示胜利遮罩
+        this.winOverlay.classList.add('show');
+        this.setDisabled(true);
+        // 3秒后自动下一关
+        var self = this;
+        this.winTimer = setTimeout(function(){
+          self.winOverlay.classList.remove('show');
+          self.setDisabled(false);
+          self.undoStack = [];
+          self.goLevel(1);
+        }, 3000);
+      }
+    },
+
+    reset(){
+      this.loadLevel(this.curLevel);
+    },
+
+    undo(){
+      if(this.undoStack.length === 0) return;
+      var step = this.undoStack.pop();
+      // 先清除当前人的位置（人可能在推箱子之后又走动了，位置已变）
+      var curMan = this.findManCell();
+      if(curMan){
+        if(curMan.type === 6) curMan.type = 4;
+        else curMan.type = 5;
+      }
+      // 恢复推箱子前的状态
+      var man = this.cells[step.manL][step.manC];
+      var box = this.cells[step.boxL][step.boxC];
+      var target = this.cells[step.targetL][step.targetC];
+      man.type = step.manType;
+      box.type = step.boxType;
+      target.type = step.targetType;
+      // 刷新显示
+      this.updateCellClass(man);
+      this.updateCellClass(box);
+      this.updateCellClass(target);
+      if(curMan) this.updateCellClass(curMan);
+      this.refreshAllMovable();
+      this.updateStatus();
+      this.updateUndoBtn();
+    },
+
+    // ---- 计时器 ----
+    clearTimer(){
+      if(this.timerId){ clearInterval(this.timerId); this.timerId = null; }
+    },
+
+    createTimerIfNone(){
+      if(this.timerId) return;
+      this.timerId = setInterval(() => this.timerTick(), 1000);
+    },
+
+    timerTick(){
+      if(this.gameOver) return;
+      this.runTime++;
+      this.updateStatus();
+    },
+
+    // ---- 显示更新 ----
+    updateStatus(){
+      // 剩余箱子数（3位）
+      var left = this.leftBox;
+      if(left > 999) left = 999;
+      var leftStr = left > 99 ? '' + left : (left > 9 ? '0' + left : '00' + left);
+      if(left === 0) leftStr = '000';
+      this.boxLeftVal.textContent = leftStr;
+
+      // 用时（3位）
+      var t = this.runTime;
+      if(t > 999) t = 999;
+      var tStr = t > 99 ? '' + t : (t > 9 ? '0' + t : '00' + t);
+      if(t === 0) tStr = '000';
+      this.timeVal.textContent = tStr;
+    },
+  };
+
+  game.init();
+
+  // 初始化音效按钮状态
+  document.getElementById('btnSfx').textContent = Sound.isSfxOn() ? '🔊' : '🔇';
+
+  // 首次用户交互解锁音频
+  function unlockAudio(){
+    Sound.unlock();
+    window.removeEventListener('keydown', unlockAudio);
+    window.removeEventListener('click', unlockAudio);
+  }
+  window.addEventListener('keydown', unlockAudio);
+  window.addEventListener('click', unlockAudio);
+
+  // 固定位置广告
+  try{ (adsbygoogle = window.adsbygoogle || []).push({}); }catch(e){}
+})();
+  </script>
+</body>
+</html>
