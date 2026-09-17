@@ -117,7 +117,7 @@
 <body>
   <a href="../" class="nav-back">← 返回</a>
   <h1>7Colors <span class="dots" id="heroDots"></span></h1>
-  <p class="sub">把地图染成你的颜色，吞并相邻同色格。地图只剩 2 色时，占地多者胜。</p>
+  <p class="sub">把地图染成你的颜色，吞并相邻同色格。地图全部被占据时，占地多者胜。</p>
 
   <div class="topbar">
     <div class="seg" id="diff">
@@ -126,6 +126,7 @@
       <button data-d="hard">困难</button>
     </div>
     <button class="btn" id="restart">重开一局</button>
+    <button class="btn" id="soundBtn" title="音效开关">🔊</button>
     <div class="status" id="status">轮到你了</div>
   </div>
 
@@ -181,6 +182,8 @@ const COLORS=[
 ];
 const half  = r => Math.min(r, SIZE-1-r);
 const valid = (r,c) => Math.abs(c-C) <= half(r);
+// 有效格子总数（菱形棋盘，四角为无效格，不计入领地/终局判定）
+const TOTAL = (() => { let n=0; for(let r=0;r<SIZE;r++)for(let c=0;c<SIZE;c++) if(valid(r,c)) n++; return n; })();
 const idx   = (r,c) => r*SIZE+c;
 const neighbors4 = i => {
   const r=(i/SIZE)|0, c=i%SIZE, out=[];
@@ -236,6 +239,18 @@ function drawSeams(region, hex){
     const di=i+SIZE; if(di<SIZE*SIZE && region.has(di)) lctx.fillRect(rc.x+R, rc.y+rc.h, rc.w-2*R, GAP);
   }
 }
+// 增量绘制：仅对「已点亮」集合 lit 内、且两端都已点亮的相邻格补画缝隙，
+// 不清画布，因此原有缝隙不会消失，并随方块一起按新色逐层铺开
+function drawSeamsLit(lit, hex){
+  lctx.fillStyle=hex;
+  for(const i of lit){
+    const r=(i/SIZE)|0, c=i%SIZE, rc=cellRect(r,c);
+    const ri=i+1;    if(ri%SIZE!==0 && (ri/SIZE|0)===r && lit.has(ri)) lctx.fillRect(rc.x+rc.w, rc.y+R, GAP, rc.h-2*R);
+    const le=i-1;    if(c!==0        && (le/SIZE|0)===r && lit.has(le)) lctx.fillRect(rc.x-GAP, rc.y+R, GAP, rc.h-2*R);
+    const di=i+SIZE; if(di<SIZE*SIZE              && lit.has(di)) lctx.fillRect(rc.x+R, rc.y+rc.h, rc.w-2*R, GAP);
+    const up=i-SIZE; if(up>=0                     && lit.has(up)) lctx.fillRect(rc.x+R, rc.y-GAP, rc.w-2*R, GAP);
+  }
+}
 function drawLinks(opts){
   lctx.clearRect(0,0,board.clientWidth, board.clientHeight);
   const pr=(opts&&opts.player)?opts.player:playerRegion;
@@ -271,6 +286,7 @@ function init(){
   for(let i=0;i<SIZE*SIZE;i++) if(grid[i]>=0) paintCell(i);
   markAll();
   setupLinks();
+  drawLinks();
   clearPreview();
   diffColors();
 }
@@ -320,12 +336,21 @@ function animateMove(side, target, done){
     for(const nb of neighbors4(cur)){ if(!finalSet.has(nb)||depth.has(nb))continue; depth.set(nb,d+1); if(d+1>maxDepth)maxDepth=d+1; bq.push(nb); }
   }
   // 4. 按层数波浪上色（基地 d=0 最先），逐格点亮领地描边，并让缝隙随波纹逐步填充
-  for(const [i,d] of depth){
+  //    同一层的格子同时点亮，并为该层播放一个音阶音（按传播进度百分比映射到 do→do）
+  const byDepth = [];
+  for(let d=0; d<=maxDepth; d++) byDepth.push([]);
+  for(const [i,d] of depth) byDepth[d].push(i);
+  for(let d=0; d<=maxDepth; d++){
     setTimeout(()=>{
-      paintCell(i); pulse(i);
-      if(i!==base) cellEls[i].classList.add(side===1?'mine':'theirs');
-      lit.add(i);
-      drawLinks(side===1?{player:lit}:{ai:lit});
+      for(const i of byDepth[d]){
+        paintCell(i); pulse(i);
+        if(i!==base) cellEls[i].classList.add(side===1?'mine':'theirs');
+        lit.add(i);
+      }
+      drawSeamsLit(lit, COLORS[target].hex);
+      const pct = maxDepth>0 ? d/maxDepth : 1;
+      const note = SCALE[Math.round(pct*(SCALE.length-1))];
+      tone(note, 0.10, 'triangle', 0, 0.14);
     }, d*42);
   }
   setTimeout(()=>{ drawLinks(); done(); }, maxDepth*42 + 110);
@@ -361,10 +386,8 @@ function aiChoose(){
   return pick;
 }
 
-function distinctColors(){ const s=new Set(); for(let i=0;i<SIZE*SIZE;i++) if(grid[i]>=0) s.add(grid[i]); return s.size; }
-
-// 唯一结束条件：地图上只剩 2 种颜色
-function checkEnd(){ return distinctColors()<=2; }
+// 结束条件：所有方块都已被双方占据（棋盘填满）
+function checkEnd(){ return playerRegion.size + aiRegion.size >= TOTAL; }
 
 // 预览：若玩家选 colorId，将被新吞并的格子（只读，不改真实状态）
 function captureSet(target){
@@ -393,7 +416,42 @@ function endGame(){
   document.getElementById('result').textContent = winner===1?'你赢了！' : winner===2?'机器人赢了' : '平局';
   document.getElementById('resultDetail').textContent = `你的领地 ${p} 格 · 机器人 ${a} 格`;
   document.getElementById('overlay').classList.add('show');
+  if(winner===1) sndWin(); else if(winner===2) sndLose(); else sndDraw();
 }
+
+// ============ 音效（Web Audio 合成，无需音频文件） ============
+let audioCtx = null;
+let soundOn = true;
+function ensureAudio(){
+  if(!audioCtx){
+    const AC = window.AudioContext || window.webkitAudioContext;
+    if(AC) audioCtx = new AC();
+  }
+  if(audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
+}
+function tone(freq, dur, type, when, vol){
+  if(!soundOn || !audioCtx) return;
+  const t0 = audioCtx.currentTime + (when || 0);
+  const osc = audioCtx.createOscillator();
+  const g = audioCtx.createGain();
+  osc.type = type || 'sine';
+  osc.frequency.setValueAtTime(freq, t0);
+  g.gain.setValueAtTime(0.0001, t0);
+  g.gain.exponentialRampToValueAtTime(vol || 0.16, t0 + 0.012);
+  g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
+  osc.connect(g).connect(audioCtx.destination);
+  osc.start(t0); osc.stop(t0 + dur + 0.03);
+}
+function sndMove(side){
+  ensureAudio();
+  if(side === 1){ tone(523, 0.12, 'triangle', 0, 0.16); tone(784, 0.10, 'triangle', 0.06, 0.12); }
+  else { tone(330, 0.12, 'sawtooth', 0, 0.12); tone(247, 0.10, 'sawtooth', 0.06, 0.09); }
+}
+function sndWin(){ ensureAudio(); [523,659,784,1047].forEach((f,i)=>tone(f,0.18,'triangle',i*0.10,0.18)); }
+function sndLose(){ ensureAudio(); [392,330,262,196].forEach((f,i)=>tone(f,0.22,'sawtooth',i*0.10,0.16)); }
+function sndDraw(){ ensureAudio(); tone(440,0.18,'sine',0,0.14); tone(440,0.18,'sine',0.12,0.10); }
+// C 大调音阶 do re mi fa sol la ti do（Hz）
+const SCALE = [261.63, 293.66, 329.63, 349.23, 392.00, 440.00, 493.88, 523.25];
 
 // 渲染分数与按钮
 function diffColors(){
@@ -420,6 +478,7 @@ function onPlayerPick(c){
   if(locked||over||turn!=='player') return;
   if(c===playerColor||c===aiColor) return;
   clearPreview();
+  ensureAudio(); sndMove(1);
   locked=true; turn='ai';
   document.getElementById('status').textContent='你走完，AI 思考中…';
   animateMove(1, c, ()=>{
@@ -427,6 +486,7 @@ function onPlayerPick(c){
     if(checkEnd()){ endGame(); return; }
     setTimeout(()=>{
       const ac=aiChoose();
+      sndMove(2);
       animateMove(2, ac, ()=>{
         diffColors();
         if(checkEnd()){ endGame(); return; }
@@ -444,6 +504,11 @@ document.getElementById('diff').addEventListener('click', e=>{
 });
 document.getElementById('restart').onclick=init;
 document.getElementById('again').onclick=init;
+document.getElementById('soundBtn').addEventListener('click', ()=>{
+  soundOn = !soundOn;
+  document.getElementById('soundBtn').textContent = soundOn ? '🔊' : '🔇';
+  if(soundOn) ensureAudio();
+});
 window.addEventListener('keydown', e=>{
   if(e.key>='1'&&e.key<='7'){ onPlayerPick(+e.key-1); }
   else if(e.key==='r'||e.key==='R'){ init(); }
