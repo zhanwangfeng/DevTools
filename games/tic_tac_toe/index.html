@@ -1,0 +1,973 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>井字棋（Tic-Tac-Toe）</title>
+<script>
+  var _hmt = _hmt || [];
+  (function() {
+    var hm = document.createElement('script');
+    hm.src = "https://hm.baidu.com/hm.js?id=97abb4f3251f4cef59d6f3b8d246473c";
+    var s = document.getElementsByTagName('script')[0];
+    s.parentNode.insertBefore(hm, s);
+  })();
+</script>
+<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-2924816368457956" crossorigin="anonymous"></script>
+<style>
+  :root{
+    --bg:#f5f6f8;
+    --panel:#ffffff;
+    --line:#e3e6ea;
+    --ink:#2b2f36;
+    --muted:#8b929c;
+    --x:#3a7afe;     /* 玩家 X */
+    --o:#f0734d;     /* 电脑 O */
+    --accent:#3a7afe;
+    --win:#2fbf71;
+    --vanish:#e8a33d;
+  }
+  *{box-sizing:border-box}
+  body{
+    margin:0; min-height:100vh; display:flex; flex-direction:column;
+    align-items:center; justify-content:center; gap:22px; padding:32px 16px;
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+    background:var(--bg); color:var(--ink);
+  }
+  h1{font-size:22px; font-weight:600; margin:0; letter-spacing:.5px}
+  .sub{font-size:13px; color:var(--muted); margin:-12px 0 0}
+
+  .panel{
+    background:var(--panel); border:1px solid var(--line); border-radius:18px;
+    padding:22px; box-shadow:0 12px 30px rgba(20,30,50,.06);
+    display:flex; flex-direction:column; align-items:center; gap:18px;
+    width:min(92vw,360px); transition:box-shadow .3s, border-color .3s;
+  }
+
+  .opts{
+    width:100%; display:flex; align-items:center; justify-content:center; gap:8px;
+    background:var(--bg); border:1px solid var(--line); border-radius:12px;
+    padding:11px 14px; cursor:pointer; font-size:13.5px; color:var(--ink);
+    user-select:none; transition:.15s; white-space:nowrap;
+    position:relative;
+  }
+  .opts:hover{border-color:var(--accent)}
+  .opts.show-tip:hover::after{
+    content:attr(data-tip);
+    position:absolute; bottom:calc(100% + 8px); left:50%; transform:translateX(-50%);
+    background:var(--ink); color:#fff; font-size:12px; line-height:1.5; text-align:center;
+    padding:9px 11px; border-radius:9px; width:max-content; max-width:240px;
+    white-space:normal; box-shadow:0 8px 20px rgba(20,30,50,.22); z-index:30; pointer-events:none;
+  }
+  .opts.show-tip:hover::before{
+    content:""; position:absolute; bottom:calc(100% + 2px); left:50%; transform:translateX(-50%);
+    border:6px solid transparent; border-top-color:var(--ink); z-index:30; pointer-events:none;
+  }
+  .opts .dot{width:7px; height:7px; border-radius:50%; background:var(--accent); flex:none}
+  .opts .txt{flex:1; text-align:center}
+
+  .overlay{
+    position:fixed; inset:0; background:rgba(20,30,50,.35); z-index:20;
+    display:flex; align-items:center; justify-content:center; padding:20px;
+  }
+  .overlay[hidden]{display:none}
+  .sheet{
+    background:var(--panel); border-radius:18px; padding:20px; width:min(92vw,340px);
+    box-shadow:0 20px 50px rgba(20,30,50,.2); display:flex; flex-direction:column; gap:16px;
+  }
+  .sheet-head{display:flex; align-items:center; justify-content:space-between; font-size:16px; font-weight:600}
+  .sheet-head .x{border:none; background:transparent; font-size:22px; color:var(--muted); cursor:pointer; line-height:1; padding:0}
+  .field{display:flex; flex-direction:column; gap:8px}
+  .field > label{font-size:12px; color:var(--muted)}
+  .field .seg{justify-content:center}
+
+  .seg{display:flex; background:var(--bg); border:1px solid var(--line); border-radius:10px; padding:3px}
+  .seg button{
+    border:none; background:transparent; color:var(--muted); font-size:13px;
+    padding:6px 12px; border-radius:8px; cursor:pointer; font-family:inherit; transition:.15s;
+  }
+  .seg button.on{background:#fff; color:var(--ink); box-shadow:0 1px 3px rgba(0,0,0,.08)}
+
+  .status{font-size:14px; min-height:20px; text-align:center; color:var(--muted)}
+  .status b{color:var(--ink)}
+  .hint{font-size:12px; color:var(--muted); margin:0; min-height:16px; text-align:center}
+
+  .board{
+    display:grid; grid-template-columns:repeat(3,92px); gap:10px;
+  }
+  /* 普通/超级：给棋盘独立外框，使其与面板明显分隔（终极模式用自带样式，不叠加） */
+  .board:not(.ultimate){
+    padding:8px; background:var(--panel); border:1px solid var(--line);
+    border-radius:16px; box-shadow:0 2px 10px rgba(20,30,50,.05);
+  }
+  .cell{
+    width:92px; height:92px;
+    background:var(--bg); border:1px solid var(--line); border-radius:14px;
+    display:flex; align-items:center; justify-content:center;
+    font-size:46px; font-weight:600; cursor:pointer; user-select:none;
+    transition:background .15s, transform .08s, border-color .15s; color:var(--ink);
+  }
+  .cell:hover:not(.filled){background:#eef1f5}
+  .cell:active:not(.filled){transform:scale(.96)}
+  .cell.x{color:var(--x)}
+  .cell.o{color:var(--o)}
+  .cell.filled{cursor:default}
+  .cell.win{background:rgba(47,191,113,.12); box-shadow:inset 0 0 0 2px var(--win)}
+  .cell.vanish{box-shadow:inset 0 0 0 2px var(--vanish); animation:vanishPulse .5s ease-in-out infinite}
+  .mark{animation:pop .18s ease-out}
+  @keyframes pop{from{transform:scale(.4);opacity:0} to{transform:scale(1);opacity:1}}
+  @keyframes vanishPulse{0%,100%{background:rgba(232,163,61,.10)}50%{background:rgba(232,163,61,.30)}}
+
+  /* ---------- 超级模式：更酷的主题 ---------- */
+  body.super{
+    --accent:#8b5cf6;
+    --x:#22d3ee;
+    --o:#f472b6;
+    --vanish:#a78bfa;
+  }
+  body.super .panel{
+    border-color:rgba(139,92,246,.45);
+    box-shadow:0 16px 44px rgba(139,92,246,.22), 0 0 0 1px rgba(139,92,246,.18);
+  }
+  body.super .opts{border-color:rgba(139,92,246,.45)}
+  body.super .cell{
+    background:rgba(255,255,255,.72);
+    border-color:rgba(139,92,246,.30);
+  }
+  body.super .cell:hover:not(.filled){background:rgba(34,211,238,.14)}
+  body.super .cell.vanish{
+    box-shadow:inset 0 0 0 2px var(--vanish);
+    animation:vanishPulseSuper .5s ease-in-out infinite;
+  }
+  @keyframes superGlow{
+    0%,100%{box-shadow:0 0 20px rgba(139,92,246,.15)}
+    50%{box-shadow:0 0 34px rgba(139,92,246,.32)}
+  }
+  @keyframes vanishPulseSuper{
+    0%,100%{background:rgba(167,139,250,.12)}
+    50%{background:rgba(167,139,250,.40)}
+  }
+  @keyframes superGlow{
+    0%,100%{box-shadow:0 0 20px rgba(139,92,246,.15)}
+    50%{box-shadow:0 0 34px rgba(139,92,246,.32)}
+  }
+
+  /* ---------- 终极模式 ---------- */
+  body.ultimate .panel{ width:min(94vw,500px); }
+  /* 流式布局：minmax(0,1fr) 禁止内容参与轨道计算，防止落子后出现正反馈撑爆布局；
+     棋盘整体 aspect-ratio:1 + 行列均分，使小盘/格子天然为正方形 */
+  .board.ultimate{
+    width:100%; box-sizing:border-box;
+    grid-template-columns:repeat(3,minmax(0,1fr));
+    grid-template-rows:repeat(3,minmax(0,1fr));
+    aspect-ratio:1;
+    gap:8px; padding:8px;
+    background:var(--bg); border-radius:18px;
+  }
+  .small-board{
+    display:grid; grid-template-columns:repeat(3,minmax(0,1fr));
+    grid-template-rows:repeat(3,minmax(0,1fr));
+    gap:4px; padding:4px; min-width:0; min-height:0;
+    position:relative; border-radius:12px; background:var(--panel); border:1px solid var(--line); transition:.15s;
+  }
+  .board.ultimate .cell{
+    width:auto; height:auto; min-width:0; min-height:0;
+    font-size:clamp(13px, 3.2vw, 22px); border-radius:8px;
+  }
+  .small-board.active{ border-color:var(--accent); box-shadow:0 0 0 2px var(--accent); }
+  .small-board.locked{ opacity:.5; }
+  .small-board.big-won{ background:rgba(58,122,254,.08); }
+  .small-board.win{ border-color:var(--win); box-shadow:0 0 0 2px var(--win); }
+  .big-mark{ position:absolute; inset:0; display:flex; align-items:center; justify-content:center; font-weight:700; pointer-events:none; font-size:clamp(40px, 11vw, 100px); animation:bigMarkPop .18s ease-out; }
+  .big-mark.x{ color:var(--x); }
+  .big-mark.o{ color:var(--o); }
+  .big-mark.draw{ color:var(--muted); font-size:clamp(30px, 8vw, 76px); }
+  @keyframes bigMarkPop{ from{ transform:scale(.6); opacity:0; } to{ transform:scale(1); opacity:1; } }
+
+  .actions{display:flex; gap:10px; width:100%}
+  .btn{
+    flex:1; border:1px solid var(--line); background:#fff; color:var(--ink);
+    font-size:14px; padding:10px; border-radius:10px; cursor:pointer;
+    font-family:inherit; transition:.15s;
+  }
+  .btn:hover{border-color:var(--accent); color:var(--accent)}
+  .btn.primary{background:var(--accent); border-color:var(--accent); color:#fff}
+  .btn.primary:hover{filter:brightness(1.05); color:#fff}
+
+  .score{display:flex; gap:18px; font-size:13px; color:var(--muted)}
+  .score b{color:var(--ink)}
+
+  .nav-back{
+    position:fixed; top:14px; left:14px; z-index:20;
+    display:inline-flex; align-items:center; gap:6px;
+    padding:7px 14px; background:var(--panel); border:1px solid var(--line);
+    border-radius:10px; color:var(--ink); text-decoration:none;
+    font-size:13px; cursor:pointer; transition:border-color .15s, transform .12s;
+  }
+  .nav-back:hover{border-color:var(--accent); transform:translateY(-1px)}
+  #soundBtn{flex:0 0 auto; min-width:46px; font-size:16px}
+
+  /* Google 广告位 */
+  .ad-container{margin-top:24px; width:100%; display:flex; justify-content:center; z-index:10; position:relative; min-height:90px;}
+  .ad-container ins{display:block; width:728px; max-width:100%; min-height:90px;}
+  .ad-sidebar{position:fixed; top:50%; transform:translateY(-50%); width:160px; height:600px; z-index:5;}
+  .ad-sidebar.ad-left{ left:calc((100vw - 960px) / 2 - 170px); }
+  .ad-sidebar.ad-right{ right:calc((100vw - 960px) / 2 - 170px); }
+  @media (max-width: 1280px){ .ad-sidebar{ display:none; } }
+</style>
+</head>
+<body>
+  <a href="../index.html" class="nav-back">← 返回</a>
+  <h1>井字棋</h1>
+  <p class="sub">你执 <span style="color:var(--x)">X</span>，电脑执 <span style="color:var(--o)">O</span></p>
+
+  <div class="panel">
+    <div class="opts" id="optsBtn">
+      <span class="dot"></span>
+      <span class="txt" id="optsText"></span>
+      <span class="dot"></span>
+    </div>
+
+    <div class="overlay" id="overlay" hidden>
+      <div class="sheet">
+        <div class="sheet-head">
+          <span>游戏设置</span>
+          <button class="x" id="closeSheet" aria-label="关闭">×</button>
+        </div>
+        <div class="field">
+          <label>难度</label>
+          <div class="seg" id="diff">
+            <button data-d="easy">简单</button>
+            <button data-d="normal">普通</button>
+            <button data-d="hard">困难</button>
+          </div>
+        </div>
+        <div class="field">
+          <label>先手</label>
+          <div class="seg" id="first">
+            <button data-f="you">你先手</button>
+            <button data-f="ai">电脑先</button>
+          </div>
+        </div>
+        <div class="field">
+          <label>玩法</label>
+          <div class="seg" id="mode">
+            <button data-m="normal">普通</button>
+            <button data-m="super">超级</button>
+            <button data-m="ultimate">终极</button>
+          </div>
+          <p class="hint" id="modeHint"></p>
+        </div>
+        <button class="btn primary" id="applySheet">确定</button>
+      </div>
+    </div>
+
+    <div class="status" id="status">轮到你了</div>
+
+    <div class="board" id="board"></div>
+
+    <div class="score">
+      <span>胜 <b id="sw">0</b></span>
+      <span>负 <b id="sl">0</b></span>
+      <span>平 <b id="sd">0</b></span>
+    </div>
+
+    <div class="actions">
+      <button class="btn primary" id="restart">重新开始</button>
+      <button class="btn" id="soundBtn" title="音效开关">🔊</button>
+    </div>
+  </div>
+
+  <div class="ad-container">
+    <ins class="adsbygoogle"
+         style="display:block"
+         data-ad-client="ca-pub-2924816368457956"
+         data-ad-slot="1214720725"
+         data-ad-format="horizontal"
+         data-full-width-responsive="true"></ins>
+  </div>
+  <div class="ad-sidebar ad-left">
+    <ins class="adsbygoogle"
+         style="display:block;width:160px;height:600px"
+         data-ad-client="ca-pub-2924816368457956"
+         data-ad-slot="1762299452"
+         data-ad-format="vertical"
+         data-full-width-responsive="false"></ins>
+  </div>
+  <div class="ad-sidebar ad-right">
+    <ins class="adsbygoogle"
+         style="display:block;width:160px;height:600px"
+         data-ad-client="ca-pub-2924816368457956"
+         data-ad-slot="7345798624"
+         data-ad-format="vertical"
+         data-full-width-responsive="false"></ins>
+  </div>
+
+<script>
+const HUMAN = 'X', AI = 'O';
+const boardEl = document.getElementById('board');
+const statusEl = document.getElementById('status');
+
+let board = Array(9).fill('');
+let over = false;
+let locked = false;            // AI 思考时锁盘
+let difficulty = 'normal';
+let humanFirst = true;
+let mode = 'normal';
+let pieceOrder = [];
+let pendingVanish = null;     // 超级模式：本回合即将被移除的最旧棋子格号
+let boards = Array.from({length:9}, () => Array(9).fill(''));  // 终极模式：9 个小棋盘
+let bigWinner = Array(9).fill('');   // 终极模式：大九宫每格归属 X/O/D/''
+let activeBoard = null;       // 终极模式：强制落子盘 0-8；null=任意盘
+let score = { w:0, l:0, d:0 };
+
+const LINES = [
+  [0,1,2],[3,4,5],[6,7,8],
+  [0,3,6],[1,4,7],[2,5,8],
+  [0,4,8],[2,4,6]
+];
+
+/* ---------- 渲染 ---------- */
+function buildBoard(){
+  boardEl.innerHTML = '';
+  if (mode === 'ultimate'){
+    boardEl.className = 'board ultimate';
+    buildBoardUltimate();
+  } else {
+    boardEl.className = 'board';
+    buildBoardSingle();
+  }
+}
+function buildBoardSingle(){
+  for (let i=0;i<9;i++){
+    const c = document.createElement('div');
+    c.className = 'cell';
+    c.addEventListener('click', () => onCell(i));
+    boardEl.appendChild(c);
+  }
+}
+function buildBoardUltimate(){
+  for (let b=0;b<9;b++){
+    const sb = document.createElement('div');
+    sb.className = 'small-board';
+    for (let s=0;s<9;s++){
+      const c = document.createElement('div');
+      c.className = 'cell';
+      c.addEventListener('click', () => onCellUltimate(b, s));
+      sb.appendChild(c);
+    }
+    boardEl.appendChild(sb);
+  }
+}
+
+function setStatus(html){ statusEl.innerHTML = html; }
+
+function place(i, p){
+  board[i] = p;
+  if (mode === 'super') pieceOrder.push({ i, p });
+  const c = boardEl.children[i];
+  c.classList.add('filled', p.toLowerCase());
+  c.innerHTML = '<span class="mark">' + p + '</span>';
+  sndMove(p === HUMAN ? 1 : 2);
+}
+
+/* ---------- 交互 ---------- */
+function onCell(i){
+  if (over || locked || board[i]) return;
+  locked = true;
+  place(i, HUMAN);
+  resolveMove(HUMAN, () => {
+    setStatus('电脑思考中…');
+    setTimeout(aiTurn, 320);
+  });
+}
+
+function aiTurn(){
+  preHighlight(AI);
+  const move = chooseAIMove();
+  if (move != null) place(move, AI);
+  resolveMove(AI, () => {
+    locked = false;
+    setStatus('轮到你了');
+    preHighlight(HUMAN);
+  });
+}
+
+/* ---------- 规则判定 ---------- */
+function lineWinner(b){
+  for (const [a,x,c] of LINES){
+    if (b[a] && b[a]===b[x] && b[a]===b[c]) return b[a];
+  }
+  return null;
+}
+function countOf(p){ let n=0; for (let i=0;i<9;i++) if (board[i]===p) n++; return n; }
+
+// 回合开始（落子前）预高亮：超级模式下，若本方已有 3 子，则高亮最旧的一子（即将被移除）
+function clearVanish(){
+  pendingVanish = null;
+  [...boardEl.children].forEach(c => c.classList.remove('vanish'));
+}
+function preHighlight(p){
+  clearVanish();
+  if (mode === 'super' && countOf(p) === 3){
+    const idx = pieceOrder.findIndex(o => o.p === p);
+    const cellIdx = pieceOrder[idx].i;
+    boardEl.children[cellIdx].classList.add('vanish');
+    pendingVanish = cellIdx;
+  }
+}
+
+// 落子后按顺序判定：1) 是否连成 3 子（胜）；2) 超级模式落子后移除本回合高亮的最旧一子
+function resolveMove(p, next){
+  const w = lineWinner(board);
+  if (w){
+    over = true;
+    clearVanish();
+    highlightWin(w);
+    if (w === HUMAN){ score.w++; setStatus('你赢了 🎉'); sndWin(); }
+    else { score.l++; setStatus('电脑赢了'); sndLose(); }
+    updateScore();
+    return;
+  }
+  if (!board.includes('')){            // 普通模式：棋盘下满且无连线 -> 平局
+    over = true; score.d++; clearVanish(); setStatus('平局'); updateScore(); sndDraw();
+    return;
+  }
+  if (mode === 'super' && pendingVanish !== null){
+    const cellIdx = pendingVanish;
+    pendingVanish = null;
+    setTimeout(() => {                  // 落子后稍作停顿再移除高亮棋子
+      sndVanish();
+      board[cellIdx] = '';
+      const oi = pieceOrder.findIndex(o => o.i === cellIdx && o.p === p);
+      if (oi >= 0) pieceOrder.splice(oi, 1);
+      const cell = boardEl.children[cellIdx];
+      cell.className = 'cell'; cell.innerHTML = '';
+      if (next) next();
+    }, 520);
+    return;
+  }
+  if (next) next();
+}
+
+function highlightWin(p){
+  for (const [a,x,c] of LINES){
+    if (board[a]===p && board[x]===p && board[c]===p){
+      [a,x,c].forEach(i => boardEl.children[i].classList.add('win'));
+      return;
+    }
+  }
+}
+
+/* ---------- 终极模式：交互与规则 ---------- */
+function onCellUltimate(big, small){
+  if (over || locked) return;
+  if (bigWinner[big] !== '') return;
+  if (activeBoard !== null && activeBoard !== big) return;
+  if (boards[big][small] !== '') return;
+  locked = true;
+  placeUltimate(big, small, HUMAN);
+  resolveUltimate(big, small, HUMAN, () => {
+    setStatus('电脑思考中…');
+    setTimeout(aiTurnUltimate, 300);
+  });
+}
+function placeUltimate(big, small, p){
+  boards[big][small] = p;
+  const cell = boardEl.children[big].children[small];
+  cell.classList.add('filled', p.toLowerCase());
+  cell.innerHTML = '<span class="mark">' + p + '</span>';
+  sndMove(p === HUMAN ? 1 : 2);
+}
+function resolveUltimate(big, small, p, next){
+  const sw = lineWinner(boards[big]);
+  if (sw){
+    bigWinner[big] = sw;
+    markSmallWon(big, sw);
+    const bw = lineWinner(bigWinner);
+    if (bw){
+      over = true; highlightBigWin(bw);
+      if (bw === HUMAN){ score.w++; setStatus('你赢了 🎉'); sndWin(); }
+      else { score.l++; setStatus('电脑赢了'); sndLose(); }
+      updateScore(); return;
+    }
+  } else if (boards[big].every(v=>v!=='')){
+    bigWinner[big] = 'D';
+    markSmallDraw(big);
+    const bw = lineWinner(bigWinner);
+    if (bw){
+      over = true; highlightBigWin(bw);
+      if (bw === HUMAN){ score.w++; setStatus('你赢了 🎉'); sndWin(); }
+      else { score.l++; setStatus('电脑赢了'); sndLose(); }
+      updateScore(); return;
+    }
+  }
+  if (!over && bigWinner.every(v=>v!=='')){
+    over = true; score.d++; setStatus('平局'); updateScore(); sndDraw(); return;
+  }
+  if (over) return;
+  const target = small;   // 落子于小盘第 small 格 -> 对手下一手落在第 small 个大格
+  activeBoard = (bigWinner[target] !== '' || boards[target].every(v=>v!=='')) ? null : target;
+  if (next) next();
+  highlightActive();
+}
+function markSmallWon(big, p){
+  ensureAudio();
+  tone(659.25, 0.10, 'triangle', 0, 0.12);
+  tone(987.77, 0.10, 'triangle', 0.05, 0.10);
+  const sb = boardEl.children[big];
+  sb.classList.add('big-won');
+  const ov = document.createElement('div');
+  ov.className = 'big-mark ' + p.toLowerCase();
+  ov.textContent = p;
+  sb.appendChild(ov);
+}
+function markSmallDraw(big){
+  const sb = boardEl.children[big];
+  sb.classList.add('big-won');
+  const ov = document.createElement('div');
+  ov.className = 'big-mark draw';
+  ov.textContent = '=';
+  sb.appendChild(ov);
+}
+function highlightBigWin(p){
+  for (const [a,x,c] of LINES){
+    if (bigWinner[a]===p && bigWinner[x]===p && bigWinner[c]===p){
+      [a,x,c].forEach(i => boardEl.children[i].classList.add('win'));
+      return;
+    }
+  }
+}
+function highlightActive(){
+  for (let b=0;b<9;b++){
+    const sb = boardEl.children[b];
+    const finished = bigWinner[b] !== '';
+    const isActive = !finished && (activeBoard === null || activeBoard === b);
+    sb.classList.toggle('active', isActive);
+    sb.classList.toggle('locked', finished || (activeBoard !== null && activeBoard !== b));
+  }
+}
+function statusTurn(){
+  if (over) return;
+  const where = activeBoard === null ? '任意小棋盘' : '高亮的小棋盘';
+  setStatus('轮到你了 · 请落在' + where);
+}
+function aiTurnUltimate(){
+  setStatus('电脑思考中…');
+  setTimeout(() => {
+    const mv = chooseUltimateMove();
+    if (mv){
+      placeUltimate(mv.big, mv.small, AI);
+      resolveUltimate(mv.big, mv.small, AI, () => {
+        locked = false; highlightActive(); statusTurn();
+      });
+    } else { locked = false; }
+  }, 260);
+}
+
+/* ---------- AI ---------- */
+function emptyCells(){ return board.map((v,i)=>v===''?i:-1).filter(i=>i>=0); }
+
+function chooseAIMove(){
+  const empties = emptyCells();
+  if (difficulty === 'easy'){
+    return empties[Math.floor(Math.random()*empties.length)];
+  }
+  if (difficulty === 'normal'){
+    // 70% 走最优，30% 随机，留点破绽
+    if (Math.random() < 0.3) return empties[Math.floor(Math.random()*empties.length)];
+  }
+  return bestMove();   // hard: 完美 minimax
+}
+
+// 在状态克隆上落子并应用超级规则（不触碰 DOM），返回是否立即获胜
+function applyMoveState(b, no, i, p, isSuper){
+  b[i] = p;
+  no.push({ i, p });
+  const w = lineWinner(b);
+  if (!w && isSuper){
+    let cnt = 0; for (const o of no) if (o.p === p) cnt++;
+    if (cnt > 3){
+      const idx = no.findIndex(o => o.p === p);   // 移除最旧一子
+      b[no[idx].i] = '';
+      no.splice(idx, 1);
+    }
+  }
+  return w;
+}
+
+function bestMove(){
+  let best = -Infinity, move = null;
+  const isSuper = (mode === 'super');
+  for (let i=0;i<9;i++) if (board[i]===''){
+    const nb = board.slice(), nno = pieceOrder.slice();
+    const w = applyMoveState(nb, nno, i, AI, isSuper);
+    const v = w ? 1000 : minimax(nb, nno, 1, false, -Infinity, Infinity, isSuper);
+    const s = v + (i===4?0.1:0) + ([0,2,6,8].includes(i)?0.05:0);
+    if (s > best){ best = s; move = i; }
+  }
+  return move;
+}
+
+// 评估局面（用于超级模式搜索上限处的启发）：己方威胁 - 对方威胁
+function evaluate(b){
+  let score = 0;
+  for (const [a,x,c] of LINES){
+    let ai=0, hu=0;
+    for (const idx of [a,x,c]){
+      if (b[idx]===AI) ai++; else if (b[idx]===HUMAN) hu++;
+    }
+    if (ai>0 && hu>0) continue;                 // 该线双方都占，已无意义
+    if (ai===2) score += 5; else if (ai===1) score += 1;
+    if (hu===2) score -= 5; else if (hu===1) score -= 1;
+  }
+  return score;
+}
+
+function minimax(b, no, depth, isMax, alpha, beta, isSuper){
+  const w = lineWinner(b);
+  if (w !== null) return w === AI ? (1000 - depth) : (depth - 1000);
+  if (!isSuper && b.every(v => v !== '')) return 0;
+  if (isSuper && depth >= 20) return evaluate(b);   // 超级模式棋盘不会填满，用深度上限+启发保证终止与强度
+  if (isMax){
+    let best = -Infinity;
+    for (let i=0;i<9;i++) if (b[i]===''){
+      const nb = b.slice(), nno = no.slice();
+      applyMoveState(nb, nno, i, AI, isSuper);
+      best = Math.max(best, minimax(nb, nno, depth+1, false, alpha, beta, isSuper));
+      alpha = Math.max(alpha, best);
+      if (beta <= alpha) break;
+    }
+    return best;
+  } else {
+    let best = Infinity;
+    for (let i=0;i<9;i++) if (b[i]===''){
+      const nb = b.slice(), nno = no.slice();
+      applyMoveState(nb, nno, i, HUMAN, isSuper);
+      best = Math.min(best, minimax(nb, nno, depth+1, true, alpha, beta, isSuper));
+      beta = Math.min(beta, best);
+      if (beta <= alpha) break;
+    }
+    return best;
+  }
+}
+
+/* ---------- 终极模式 AI（深度搜索） ---------- */
+function currentState(){
+  return { boards: boards.map(a=>a.slice()), big: bigWinner.slice(), active: activeBoard };
+}
+function smallEvalHuman(b){
+  let s = 0;
+  for (const [a,x,c] of LINES){
+    let ai=0, hu=0;
+    for (const idx of [a,x,c]){ if (b[idx]===AI) ai++; else if (b[idx]===HUMAN) hu++; }
+    if (ai>0 && hu>0) continue;
+    if (hu===2) s += 5; else if (hu===1) s += 1;
+    if (ai===2) s -= 5; else if (ai===1) s -= 1;
+  }
+  return s;
+}
+function ultimateEval(boardsArr, big){
+  const w = lineWinner(big);
+  if (w === HUMAN) return 100000;
+  if (w === AI) return -100000;
+  let score = 0;
+  for (let b=0;b<9;b++){
+    const win = big[b];
+    if (win === HUMAN) score += 1000;
+    else if (win === AI) score -= 1000;
+    else if (win === '') score += smallEvalHuman(boardsArr[b]) * 0.5;
+  }
+  if (big[4] === HUMAN) score += 30;
+  if (big[4] === AI) score -= 30;
+  return score;
+}
+function umMoves(st, turn){
+  const res = [];
+  const list = st.active === null ? [0,1,2,3,4,5,6,7,8] : [st.active];
+  for (const b of list){
+    if (st.big[b] !== '') continue;
+    for (let s=0;s<9;s++) if (st.boards[b][s] === '') res.push([b,s]);
+  }
+  if (turn){
+    res.sort((m1,m2) => moveScore(st,m2,turn) - moveScore(st,m1,turn));
+  }
+  return res;
+}
+function moveScore(st, m, turn){
+  let s = 0;
+  if (wouldWin(st, m[0], m[1], turn)) s += 1000;  // 能直接赢下小棋盘优先
+  if (m[0] === 4) s += 10;                         // 优先中心大盘
+  if (m[1] === 4) s += 5;                          // 优先中心格
+  return s;
+}
+function applyMove(st, b, s, p){
+  const prev = { cell: st.boards[b][s], big: st.big[b], active: st.active };
+  st.boards[b][s] = p;
+  const sw = lineWinner(st.boards[b]);
+  if (sw) st.big[b] = sw;
+  else if (st.boards[b].every(v=>v!=='')) st.big[b] = 'D';
+  const target = s;
+  st.active = (st.big[target] !== '' || st.boards[target].every(v=>v!=='')) ? null : target;
+  return prev;
+}
+function undoMove(st, b, s, prev){
+  st.boards[b][s] = prev.cell;
+  st.big[b] = prev.big;
+  st.active = prev.active;
+}
+function umSearch(st, turn, depth, alpha, beta, deadline){
+  const winner = lineWinner(st.big);
+  if (winner === HUMAN) return 100000 + depth;
+  if (winner === AI) return -100000 - depth;
+  if (depth <= 0 || Date.now() > deadline) return ultimateEval(st.boards, st.big);
+  const moves = umMoves(st, turn);
+  if (moves.length === 0) return 0;
+  if (turn === HUMAN){
+    let best = -Infinity;
+    for (const [b,s] of moves){
+      if (Date.now() > deadline) return best;
+      const prev = applyMove(st, b, s, HUMAN);
+      const v = umSearch(st, AI, depth-1, alpha, beta, deadline);
+      undoMove(st, b, s, prev);
+      if (v > best) best = v;
+      if (v > alpha) alpha = v;
+      if (alpha >= beta) break;
+    }
+    return best;
+  } else {
+    let best = Infinity;
+    for (const [b,s] of moves){
+      if (Date.now() > deadline) return best;
+      const prev = applyMove(st, b, s, AI);
+      const v = umSearch(st, HUMAN, depth-1, alpha, beta, deadline);
+      undoMove(st, b, s, prev);
+      if (v < best) best = v;
+      if (v < beta) beta = v;
+      if (alpha >= beta) break;
+    }
+    return best;
+  }
+}
+function wouldWin(st, b, s, p){
+  const prev = applyMove(st, b, s, p);
+  const w = lineWinner(st.big);
+  undoMove(st, b, s, prev);
+  return w === p;
+}
+function chooseUltimateMove(){
+  const st = currentState();
+  const moves = umMoves(st, AI);
+  if (moves.length === 0) return null;
+  const rand = () => moves[Math.floor(Math.random()*moves.length)];
+  if (difficulty === 'easy'){ const r = rand(); return { big:r[0], small:r[1] }; }
+  for (const [b,s] of moves) if (wouldWin(st, b, s, AI)) return { big:b, small:s };
+  if (difficulty === 'normal' && Math.random() < 0.25){ const r = rand(); return { big:r[0], small:r[1] }; }
+  for (const [b,s] of moves) if (wouldWin(st, b, s, HUMAN)) return { big:b, small:s };
+  const deadline = Date.now() + (difficulty === 'hard' ? 500 : 250);
+  const maxDepth = difficulty === 'hard' ? 6 : 3;
+  let bestMove = { big:moves[0][0], small:moves[0][1] };
+  for (let d=2; d<=maxDepth; d++){
+    if (Date.now() > deadline) break;
+    let bestVal = Infinity, bm = bestMove;
+    for (const [b,s] of moves){
+      const prev = applyMove(st, b, s, AI);
+      const v = umSearch(st, HUMAN, d-1, -Infinity, Infinity, deadline);
+      undoMove(st, b, s, prev);
+      if (v < bestVal){ bestVal = v; bm = { big:b, small:s }; }
+    }
+    bestMove = bm;
+    if (Date.now() > deadline) break;
+  }
+  return bestMove;
+}
+
+function updateScore(){
+  document.getElementById('sw').textContent = score.w;
+  document.getElementById('sl').textContent = score.l;
+  document.getElementById('sd').textContent = score.d;
+}
+
+/* ---------- 选项存盘 ---------- */
+function syncOptionsUI(){
+  document.querySelectorAll('#diff button').forEach(b=>b.classList.toggle('on', b.dataset.d===difficulty));
+  document.querySelectorAll('#first button').forEach(b=>b.classList.toggle('on', (b.dataset.f==='you')===humanFirst));
+  document.querySelectorAll('#mode button').forEach(b=>b.classList.toggle('on', b.dataset.m===mode));
+}
+const DIFF_LABEL = { easy:'简单', normal:'普通', hard:'困难' };
+function updateOptsText(){
+  const modeLabel = mode==='super' ? '超级' : mode==='ultimate' ? '终极' : '普通';
+  document.getElementById('optsText').textContent =
+    `难度：${DIFF_LABEL[difficulty]||'普通'} · ${humanFirst?'你先':'电脑先'} · ${modeLabel}`;
+}
+function saveOptions(){
+  try { localStorage.setItem('ttt_options', JSON.stringify({ difficulty, humanFirst, mode })); } catch(e){}
+  updateOptsText();
+}
+function loadOptions(){
+  try {
+    const s = JSON.parse(localStorage.getItem('ttt_options') || '{}');
+    if (s.difficulty) difficulty = s.difficulty;
+    if (typeof s.humanFirst === 'boolean') humanFirst = s.humanFirst;
+    if (s.mode) mode = s.mode;
+  } catch(e){}
+  syncOptionsUI();
+  updateOptsText();
+}
+
+/* ---------- 设置弹层 ---------- */
+const overlay = document.getElementById('overlay');
+function openSheet(){ syncOptionsUI(); updateRule(); overlay.hidden = false; }
+function closeSheet(){ overlay.hidden = true; }
+document.getElementById('optsBtn').addEventListener('click', openSheet);
+document.getElementById('closeSheet').addEventListener('click', closeSheet);
+document.getElementById('applySheet').addEventListener('click', ()=>{
+  const newDiff = document.querySelector('#diff button.on').dataset.d;
+  const newHuman = document.querySelector('#first button.on').dataset.f === 'you';
+  const newMode = document.querySelector('#mode button.on').dataset.m;
+  const restart = (newHuman !== humanFirst) || (newMode !== mode);
+  difficulty = newDiff; humanFirst = newHuman; mode = newMode;
+  saveOptions();
+  updateRule();
+  if (restart) newGame();
+  closeSheet();
+});
+overlay.addEventListener('click', e=>{ if (e.target === overlay) closeSheet(); });
+
+/* ---------- 音效 ---------- */
+let audioCtx = null;
+let soundOn = true;
+function ensureAudio(){
+  if (!audioCtx){
+    try { audioCtx = new (window.AudioContext || window.webkitAudioContext)(); } catch(e){ audioCtx = null; }
+  }
+  if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
+}
+function tone(freq, dur, type, when, vol){
+  if (!soundOn || !audioCtx) return;
+  const t0 = audioCtx.currentTime + (when || 0);
+  const osc = audioCtx.createOscillator();
+  const gain = audioCtx.createGain();
+  osc.type = type || 'sine';
+  osc.frequency.value = freq;
+  gain.gain.setValueAtTime(0.0001, t0);
+  gain.gain.exponentialRampToValueAtTime(vol || 0.15, t0 + 0.012);
+  gain.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
+  osc.connect(gain).connect(audioCtx.destination);
+  osc.start(t0);
+  osc.stop(t0 + dur + 0.02);
+}
+function sndMove(side){
+  ensureAudio();
+  if (side === 1){                       // 你（X）：明亮上行
+    tone(523.25, 0.12, 'triangle', 0, 0.16);
+    tone(783.99, 0.10, 'triangle', 0.06, 0.12);
+  } else {                               // 电脑（O）：低沉下行
+    tone(329.63, 0.12, 'triangle', 0, 0.14);
+    tone(246.94, 0.10, 'triangle', 0.06, 0.10);
+  }
+}
+function sndWin(){
+  ensureAudio();
+  [523.25, 659.25, 783.99, 1046.5].forEach((f,i)=> tone(f, 0.18, 'triangle', i*0.09, 0.16));
+}
+function sndLose(){
+  ensureAudio();
+  [392, 330, 262, 196].forEach((f,i)=> tone(f, 0.20, 'sawtooth', i*0.10, 0.12));
+}
+function sndDraw(){
+  ensureAudio();
+  tone(440, 0.16, 'sine', 0, 0.14);
+  tone(440, 0.16, 'sine', 0.18, 0.14);
+}
+function sndVanish(){
+  ensureAudio();
+  tone(880, 0.10, 'sine', 0, 0.12);
+  tone(440, 0.12, 'sine', 0.05, 0.10);
+}
+function sndStart(){
+  ensureAudio();
+  [523.25, 587.33, 659.25, 783.99].forEach((f,i)=> tone(f, 0.14, 'triangle', i*0.08, 0.14));
+}
+
+/* ---------- 控件（仅切换选择，确认后生效） ---------- */
+function selectOnly(group, btn){
+  [...group.children].forEach(x=>x.classList.toggle('on', x===btn));
+}
+document.getElementById('diff').addEventListener('click', e=>{
+  const b = e.target.closest('button'); if (!b) return;
+  selectOnly(e.currentTarget, b);
+});
+document.getElementById('first').addEventListener('click', e=>{
+  const b = e.target.closest('button'); if (!b) return;
+  selectOnly(e.currentTarget, b);
+});
+document.getElementById('mode').addEventListener('click', e=>{
+  const b = e.target.closest('button'); if (!b) return;
+  selectOnly(e.currentTarget, b);
+});
+
+function updateRule(){
+  let tip = '';
+  if (mode === 'super') tip = '双方各最多保留 3 子，落子后超出的最旧一子会高亮并消失';
+  else if (mode === 'ultimate') tip = '9 个小棋盘拼成大九宫：你落在某盘第几格，对手下一手就必须落在对应位置的大盘。';
+  document.getElementById('modeHint').textContent = tip;
+  const opts = document.getElementById('optsBtn');
+  if (tip){ opts.setAttribute('data-tip', tip); opts.title = tip; opts.classList.add('show-tip'); }
+  else { opts.removeAttribute('data-tip'); opts.removeAttribute('title'); opts.classList.remove('show-tip'); }
+  document.body.classList.toggle('super', mode === 'super');
+  document.body.classList.toggle('ultimate', mode === 'ultimate');
+}
+
+function newGame(){
+  sndStart();
+  over = false; locked = false;
+  updateRule();
+  if (mode === 'ultimate'){
+    boards = Array.from({length:9}, () => Array(9).fill(''));
+    bigWinner = Array(9).fill('');
+    activeBoard = null;
+    buildBoard();
+    if (!humanFirst){
+      locked = true; setStatus('电脑先手…');
+      setTimeout(aiTurnUltimate, 320);
+    } else {
+      highlightActive(); statusTurn();
+    }
+    return;
+  }
+  board = Array(9).fill('');
+  pieceOrder = [];
+  pendingVanish = null;
+  buildBoard();
+  if (!humanFirst){
+    locked = true; setStatus('电脑先手…');
+    setTimeout(() => {
+      preHighlight(AI);
+      place(bestMove(), AI);
+      resolveMove(AI, () => { locked = false; setStatus('轮到你了'); preHighlight(HUMAN); });
+    }, 320);
+  } else {
+    setStatus('轮到你了');
+    preHighlight(HUMAN);
+  }
+}
+
+document.getElementById('restart').addEventListener('click', newGame);
+document.getElementById('soundBtn').addEventListener('click', ()=>{
+  soundOn = !soundOn;
+  document.getElementById('soundBtn').textContent = soundOn ? '🔊' : '🔇';
+  if (soundOn) ensureAudio();
+});
+
+loadOptions();
+buildBoard();
+newGame();
+
+/* 初始化 Google 广告位（与 7colors 同账号同广告位） */
+try{ (adsbygoogle = window.adsbygoogle || []).push({}); }catch(e){}
+try{ (adsbygoogle = window.adsbygoogle || []).push({}); }catch(e){}
+try{ (adsbygoogle = window.adsbygoogle || []).push({}); }catch(e){}
+</script>
+</body>
+</html>
