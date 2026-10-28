@@ -20,6 +20,15 @@
   <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-2924816368457956"
     crossorigin="anonymous">
   </script>
+  <style>
+    /* Google 广告位 */
+    .ad-container{margin-top:24px; width:100%; display:flex; justify-content:center; z-index:10; position:relative; min-height:90px;}
+    .ad-container ins{display:block; width:728px; max-width:100%; min-height:90px;}
+    .ad-sidebar{position:fixed; top:50%; transform:translateY(-50%); width:160px; height:600px; z-index:5;}
+    .ad-sidebar.ad-left{ left:calc((100vw - 960px) / 2 - 170px); }
+    .ad-sidebar.ad-right{ right:calc((100vw - 960px) / 2 - 170px); }
+    @media (max-width: 1280px){ .ad-sidebar{ display:none; } }
+  </style>
 </head>
 <body>
   <header class="site-header">
@@ -44,11 +53,20 @@
       <p>在线小游戏，无需安装，打开即玩</p>
     </div>
     <div class="search-bar">
-      <input type="text" class="search-input" id="searchInput" placeholder="关键字搜索" autofocus>
+      <input type="text" class="search-input" id="searchInput" placeholder="关键字搜索">
     </div>
     <div class="section-title">全部游戏</div>
     <div class="tool-grid" id="gameGrid"></div>
   </main>
+
+  <div class="ad-container">
+    <ins class="adsbygoogle"
+         style="display:block"
+         data-ad-client="ca-pub-2924816368457956"
+         data-ad-slot="1214720725"
+         data-ad-format="horizontal"
+         data-full-width-responsive="true"></ins>
+  </div>
 
   <footer class="footer">
     <div class="footer__container">
@@ -84,6 +102,8 @@
     ];
 
     var searchInput = document.getElementById("searchInput");
+    // 手机端不自动激活搜索框，避免打开页面时弹起键盘
+    if (window.matchMedia("(min-width: 768px)").matches) searchInput.focus();
 
     function renderGames(filter) {
       var grid = document.getElementById("gameGrid");
@@ -104,6 +124,28 @@
     });
 
     renderGames();
+  </script>
+  <div class="ad-sidebar ad-left">
+    <ins class="adsbygoogle"
+         style="display:block;width:160px;height:600px"
+         data-ad-client="ca-pub-2924816368457956"
+         data-ad-slot="1762299452"
+         data-ad-format="vertical"
+         data-full-width-responsive="false"></ins>
+  </div>
+  <div class="ad-sidebar ad-right">
+    <ins class="adsbygoogle"
+         style="display:block;width:160px;height:600px"
+         data-ad-client="ca-pub-2924816368457956"
+         data-ad-slot="7345798624"
+         data-ad-format="vertical"
+         data-full-width-responsive="false"></ins>
+  </div>
+
+  <script>
+  try{ (adsbygoogle = window.adsbygoogle || []).push({}); }catch(e){}
+  try{ (adsbygoogle = window.adsbygoogle || []).push({}); }catch(e){}
+  try{ (adsbygoogle = window.adsbygoogle || []).push({}); }catch(e){}
   </script>
 </body>
 </html>
