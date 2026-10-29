@@ -94,6 +94,18 @@
   .modal h2{margin:0 0 6px; font-size:26px;}
   .modal p{color:var(--muted); margin:6px 0 18px; font-size:14px;}
   .modal .big{font-size:15px; color:var(--ink);}
+  .modal-actions{display:flex; gap:10px; justify-content:center; margin-top:4px;}
+  .btn.share{background:var(--brand); border-color:var(--brand); color:#fff;}
+  .btn.share:hover{filter:brightness(1.1);}
+  #toast{
+    position:fixed; left:50%; bottom:44px; transform:translateX(-50%) translateY(10px);
+    background:var(--card); border:1px solid var(--line); color:var(--ink);
+    padding:9px 16px; border-radius:10px; font-size:13px; max-width:86vw;
+    opacity:0; pointer-events:none; transition:opacity .2s, transform .2s; z-index:30;
+  }
+  #toast.show{opacity:1; transform:translateX(-50%) translateY(0);}
+  .share-modal{max-width:320px;}
+  #shareImg{width:100%; display:block; border-radius:12px; margin:8px 0; background:var(--card);}
 
   /* 左上角返回按钮 */
   .nav-back{
@@ -127,6 +139,7 @@
     </div>
     <button class="btn" id="restart">重开一局</button>
     <button class="btn" id="soundBtn" title="音效开关">🔊</button>
+    <button class="btn" id="debugBtn" title="调试：随机胜负结算" hidden>调试结算</button>
     <div class="status" id="status">轮到你了</div>
   </div>
 
@@ -152,7 +165,7 @@
          data-ad-client="ca-pub-2924816368457956"
          data-ad-slot="1762299452"
          data-ad-format="vertical"
-         data-full-width-responsive="false"></ins>
+         data-full-width-responsive="true"></ins>
   </div>
   <div class="ad-sidebar ad-right">
     <ins class="adsbygoogle"
@@ -160,13 +173,26 @@
          data-ad-client="ca-pub-2924816368457956"
          data-ad-slot="7345798624"
          data-ad-format="vertical"
-         data-full-width-responsive="false"></ins>
+         data-full-width-responsive="true"></ins>
   </div>
 
   <div class="overlay" id="overlay"><div class="modal">
     <h2 id="result">—</h2>
     <p class="big" id="resultDetail"></p>
-    <button class="btn" id="again">再来一局</button>
+    <div class="modal-actions">
+      <button class="btn" id="again">再来一局</button>
+      <button class="btn share" id="shareBtn">邀请朋友</button>
+    </div>
+  </div></div>
+
+  <div class="overlay" id="shareOverlay"><div class="modal share-modal">
+    <h2>邀请朋友</h2>
+    <img id="shareImg" alt="战绩海报" />
+    <p class="big" id="shareHint">长按上方图片即可发送给好友 / 朋友圈</p>
+    <div class="modal-actions">
+      <button class="btn" id="shareSave">保存图片</button>
+      <button class="btn share" id="shareCopy">复制文案</button>
+    </div>
   </div></div>
 
 <script>
@@ -513,7 +539,89 @@ window.addEventListener('keydown', e=>{
   if(e.key>='1'&&e.key<='7'){ onPlayerPick(+e.key-1); }
   else if(e.key==='r'||e.key==='R'){ init(); }
 });
+
+// 调试：随机结算（胜/负/平），用于快速验证结束弹窗与分享流程
+function debugEnd(){
+  over=true; locked=true;
+  const r=Math.random();
+  winner = r<0.45 ? 1 : (r<0.9 ? 2 : 0);
+  let p, a;
+  if(winner===1){ p=110+((Math.random()*60)|0); a=TOTAL-p; }
+  else if(winner===2){ a=110+((Math.random()*60)|0); p=TOTAL-a; }
+  else { p=TOTAL/2|0; a=TOTAL-p; }
+  document.getElementById('result').textContent = winner===1?'你赢了！' : winner===2?'机器人赢了' : '平局';
+  document.getElementById('resultDetail').textContent = `你的领地 ${p} 格 · 机器人 ${a} 格`;
+  document.getElementById('overlay').classList.add('show');
+  if(winner===1) sndWin(); else if(winner===2) sndLose(); else sndDraw();
+}
+document.getElementById('debugBtn').onclick = debugEnd;
+if(new URLSearchParams(location.search).get('debug') === '1'){
+  document.getElementById('debugBtn').hidden = false;
+}
 window.addEventListener('resize', ()=>{ setupLinks(); drawLinks(); });
+
+// ============ 分享战绩（使用静态海报 images/poster.jpg，真实 https 地址，微信可长按保存/转发） ============
+const SHARE_POSTER = 'images/poster.jpg';
+let toastTimer = null;
+function toast(msg){
+  let t = document.getElementById('toast');
+  if(!t){ t = document.createElement('div'); t.id = 'toast'; document.body.appendChild(t); }
+  t.textContent = msg; t.classList.add('show');
+  clearTimeout(toastTimer); toastTimer = setTimeout(()=>t.classList.remove('show'), 2400);
+}
+async function shareResult(){
+  const p = playerRegion.size, a = aiRegion.size;
+  const diffName = {easy:'简单', normal:'普通', hard:'困难'}[difficulty] || '普通';
+  const res = winner===1 ? '获胜' : (winner===2 ? '惜败' : '战平');
+  const text = `我在 7Colors 染色对战中${res}！比分 ${p}:${a}（${diffName}难度），快来挑战我：${location.href}`;
+
+  // 读取静态海报为文件，用于系统分享（带图）
+  let file = null;
+  try{
+    const blob = await (await fetch(SHARE_POSTER)).blob();
+    file = new File([blob], '7colors.jpg', { type: blob.type || 'image/jpeg' });
+  }catch(e){}
+
+  // 1) 拉起系统分享面板（带真实图片文件）
+  if(navigator.share){
+    const title = '7Colors 你 vs 机器人';
+    try{
+      const data = { title, text };
+      if(file) data.files = [file];   // 支持带文件分享的浏览器（含 iOS）直接带图
+      await navigator.share(data);
+      return;
+    }catch(err){
+      if(err && err.name === 'AbortError') return;          // 用户主动取消
+      // 该浏览器不支持带文件分享 → 去掉 files 再试纯文案（仍会拉起面板）
+      if(file){
+        try{ await navigator.share({ title, text }); return; }
+        catch(err2){ if(err2 && err2.name === 'AbortError') return; }
+      }
+    }
+  }
+
+  // 2) 完全不支持 / 被拒绝时降级：弹出海报浮层（真实 https 地址，微信长按可保存/转发）
+  showShareFallback(SHARE_POSTER, text);
+}
+function showShareFallback(url, text){
+  const img = document.getElementById('shareImg');
+  img.src = url;
+  const ov = document.getElementById('shareOverlay');
+  // 微信内置浏览器：补充更准确的引导
+  if(/MicroMessenger/i.test(navigator.userAgent)){
+    document.getElementById('shareHint').textContent = '长按图片→【发送给朋友】；或点右上角 ··· 分享本页';
+  }
+  ov.classList.add('show');
+  document.getElementById('shareSave').onclick = ()=>{
+    const a = document.createElement('a'); a.href = url; a.download = '7colors.jpg'; a.click();
+  };
+  document.getElementById('shareCopy').onclick = async ()=>{
+    try{ await navigator.clipboard.writeText(text); toast('文案已复制'); }
+    catch(e){ toast('复制失败，文案见控制台'); console.log(text); }
+  };
+  ov.onclick = (e)=>{ if(e.target === ov){ ov.classList.remove('show'); } };
+}
+document.getElementById('shareBtn').onclick = shareResult;
 
 init();
 
