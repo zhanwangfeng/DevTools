@@ -57,3 +57,6 @@ yarn-error.log*
 *.bak
 *.orig
 .trae/
+
+# Local plans (not tracked)
+docs/plans/
