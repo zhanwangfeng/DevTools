@@ -252,6 +252,24 @@ body{
 .push-box-game .sprite-box-ok{
   background-image:url(res/push_box_box_ok.png);
 }
+/* 推箱子状态：箱子上的方向箭头 */
+.push-box-game .sprite.pushing::after{
+  content:"➤";
+  position:absolute;
+  inset:0;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-size:calc(var(--cell-size) * 0.6);
+  line-height:1;
+  color:#fff;
+  text-shadow:0 0 3px #000, 0 0 6px #000;
+  pointer-events:none;
+}
+.push-box-game .sprite.push-dir-right::after{ transform:rotate(0deg); }
+.push-box-game .sprite.push-dir-down::after{ transform:rotate(90deg); }
+.push-box-game .sprite.push-dir-left::after{ transform:rotate(180deg); }
+.push-box-game .sprite.push-dir-up::after{ transform:rotate(-90deg); }
 .push-box-game .mine-con{
   position:relative;
 }
@@ -296,12 +314,23 @@ body{
   height:var(--cell-size);
   flex-shrink:0;
   display:block;
+  position:relative;
   text-align:center;
   line-height:var(--cell-size);
   cursor:pointer;
   border-radius:0;
   touch-action:manipulation;
   -webkit-tap-highlight-color:transparent;
+}
+/* 推箱子状态下可落点格子的绿色遮罩 */
+.push-box-game .cell.push-target::after{
+  content:"";
+  position:absolute;
+  inset:0;
+  z-index:2;
+  pointer-events:none;
+  background:rgba(0,255,120,0.35);
+  box-shadow:inset 0 0 0 2px rgba(0,255,120,0.75);
 }
 .push-box-game .cell_box{
   background:url(res/push_box_box.png);
@@ -481,6 +510,7 @@ body{
     boxSprites: {},
     animating: false,
     moveDuration: 120,
+    pushMode: null,
     gameOver: false,
     win: false,
     disabled: false,
@@ -603,7 +633,8 @@ body{
         default: return;
       }
       e.preventDefault();
-      if(target) this.cellClick(target);
+      if(this.pushMode) this.exitPushMode();
+      if(target) this.directStep(target);
     },
 
     async goLevel(step){
@@ -621,6 +652,7 @@ body{
         this.winTimer = null;
       }
       this.winOverlay.classList.remove('show');
+      this.exitPushMode();
       this.undoStack = [];
       this.setDisabled(false);
       this.updateUndoBtn();
@@ -834,6 +866,166 @@ body{
       return path;
     },
 
+    // ---- 推箱子模式（点击箱子后选择落点） ----
+    enterPushMode(man, box){
+      var dirL = box.idxL - man.idxL;
+      var dirC = box.idxC - man.idxC;
+      if((dirL !== 0 && dirC !== 0) || (dirL === 0 && dirC === 0)) return false;
+      var targets = [];
+      var l = box.idxL + dirL;
+      var c = box.idxC + dirC;
+      while(true){
+        var cell = this.getCell(l, c);
+        if(!cell || !this.cellIsEmpty(cell)) break;
+        targets.push(cell);
+        l += dirL;
+        c += dirC;
+      }
+      if(!targets.length) return false;
+      this.exitPushMode();
+      var dirName = dirC === 1 ? 'right' : (dirC === -1 ? 'left' : (dirL === 1 ? 'down' : 'up'));
+      this.pushMode = {
+        dirL: dirL, dirC: dirC,
+        boxL: box.idxL, boxC: box.idxC,
+        targets: targets
+      };
+      var self = this;
+      targets.forEach(function(t){
+        var el = self.cellEls[t.idxL] && self.cellEls[t.idxL][t.idxC];
+        if(el) el.classList.add('push-target');
+      });
+      var boxEl = this.boxSprites[this.cellKey(box.idxL, box.idxC)];
+      if(boxEl) boxEl.classList.add('pushing', 'push-dir-' + dirName);
+      return true;
+    },
+
+    exitPushMode(){
+      if(!this.pushMode) return;
+      var mode = this.pushMode;
+      var self = this;
+      mode.targets.forEach(function(t){
+        var el = self.cellEls[t.idxL] && self.cellEls[t.idxL][t.idxC];
+        if(el) el.classList.remove('push-target');
+      });
+      var boxEl = this.boxSprites[this.cellKey(mode.boxL, mode.boxC)];
+      if(boxEl){
+        boxEl.classList.remove('pushing', 'push-dir-right', 'push-dir-down', 'push-dir-left', 'push-dir-up');
+      }
+      this.pushMode = null;
+    },
+
+    recordPushUndo(man, box, target){
+      this.undoStack.push({
+        manL: man.idxL, manC: man.idxC, manType: man.type,
+        boxL: box.idxL, boxC: box.idxC, boxType: box.type,
+        targetL: target.idxL, targetC: target.idxC, targetType: target.type
+      });
+    },
+
+    commitWalk(man, last){
+      if(man.type === 6) man.type = 4;
+      else man.type = 5;
+      if(last.type === 4) last.type = 6;
+      else last.type = 2;
+      this.refreshAllMovable();
+    },
+
+    async walkTo(man, cell){
+      if(!man || !this.manIsLine(man, cell)) return false;
+      var path = this.findPath(man, cell);
+      if(!path || !path.length) return false;
+      Sound.move();
+      this.createTimerIfNone();
+      await this.animateWalk(path);
+      this.commitWalk(man, path[path.length - 1]);
+      return true;
+    },
+
+    commitPush(man, box, target){
+      var dirL = target.idxL - box.idxL;
+      var dirC = target.idxC - box.idxC;
+      var steps = Math.abs(dirL) + Math.abs(dirC);
+      dirL = dirL ? dirL / steps : 0;
+      dirC = dirC ? dirC / steps : 0;
+      this.cellChangeToEmpty(man);
+      for(var i=0; i<steps; i++){
+        var passed = this.getCell(box.idxL + dirL * i, box.idxC + dirC * i);
+        if(passed) this.cellChangeToEmpty(passed);
+      }
+      var manFinal = this.getCell(box.idxL + dirL * (steps - 1), box.idxC + dirC * (steps - 1));
+      this.cellChangeToMan(manFinal);
+      this.cellChangeToBox(target);
+      this.refreshAllMovable();
+      this.updateUndoBtn();
+      this.checkWin();
+    },
+
+    async performPush(target){
+      if(this.animating) return;
+      var mode = this.pushMode;
+      var man = this.findManCell();
+      var box = mode ? this.getCell(mode.boxL, mode.boxC) : null;
+      if(!mode || !man || !box) return;
+      var steps = Math.abs(target.idxL - box.idxL) + Math.abs(target.idxC - box.idxC);
+      if(steps < 1) return;
+      this.exitPushMode();
+      this.recordPushUndo(man, box, target);
+      Sound.push();
+      this.createTimerIfNone();
+      this.animating = true;
+      var boxEl = this.boxSprites[this.cellKey(box.idxL, box.idxC)];
+      if(boxEl){
+        boxEl.className = 'sprite ' + (target.type === 4 ? 'sprite-box-ok' : 'sprite-box');
+      }
+      for(var i=1; i<=steps; i++){
+        this.setSpritePos(this.manSprite, box.idxL + mode.dirL * (i-1), box.idxC + mode.dirC * (i-1));
+        if(boxEl) this.setSpritePos(boxEl, box.idxL + mode.dirL * i, box.idxC + mode.dirC * i);
+        await this.wait(this.moveDuration);
+      }
+      this.animating = false;
+      this.commitPush(man, box, target);
+      // 推动完成后保持在推箱子状态，以箱子新位置继续显示落点与方向
+      if(!this.gameOver) this.enterPushMode(this.findManCell(), target);
+    },
+
+    // 推动指定箱子一格，并以新位置继续保持在推箱子状态
+    async pushOneStep(box){
+      var man = this.findManCell();
+      if(!man || !this.cellIsBox(box)) return false;
+      if(Math.abs(box.idxL - man.idxL) + Math.abs(box.idxC - man.idxC) !== 1) return false;
+      var pushTo = this.getPushBoxToCell(man, box);
+      if(!pushTo) return false;
+      this.recordPushUndo(man, box, pushTo);
+      Sound.push();
+      this.createTimerIfNone();
+      await this.animatePush(man, box, pushTo);
+      this.commitPush(man, box, pushTo);
+      if(!this.gameOver) this.enterPushMode(this.findManCell(), pushTo);
+      return true;
+    },
+
+    // 键盘单步移动：保持原有即时推箱行为
+    async directStep(cell){
+      if(!cell || this.gameOver || this.disabled || this.animating) return;
+      var man = this.findManCell();
+      if(!man) return;
+      if(this.manIsLine(man, cell)){
+        Sound.move();
+        this.createTimerIfNone();
+        await this.animateWalk([cell]);
+        this.commitWalk(man, cell);
+        return;
+      }
+      var pushTo = this.getPushBoxToCell(man, cell);
+      if(pushTo){
+        this.recordPushUndo(man, cell, pushTo);
+        Sound.push();
+        this.createTimerIfNone();
+        await this.animatePush(man, cell, pushTo);
+        this.commitPush(man, cell, pushTo);
+      }
+    },
+
     // ---- 游戏逻辑（保持原样） ----
     getCell(idxL, idxC){
       if(idxL < 0 || idxL >= this.line) return null;
@@ -935,45 +1127,42 @@ body{
 
     async cellClick(cell){
       if(!cell || this.gameOver || this.disabled || this.animating) return;
+
+      if(this.pushMode){
+        var mode = this.pushMode;
+        // 绿色落点：推动到该格并保持推箱子状态
+        if(mode.targets.indexOf(cell) >= 0){
+          await this.performPush(cell);
+          return;
+        }
+        // 当前状态对应的箱子：再推一格，保持推箱子状态
+        if(cell.idxL === mode.boxL && cell.idxC === mode.boxC){
+          this.exitPushMode();
+          await this.pushOneStep(cell);
+          return;
+        }
+        // 其他箱子：退出当前状态，按普通点击处理（切换到该箱子）
+        this.exitPushMode();
+        if(!this.cellIsBox(cell)){
+          var modeMan = this.findManCell();
+          if(modeMan) await this.walkTo(modeMan, cell);
+          return;
+        }
+      }
+
       var man = this.findManCell();
       if(!man) return;
 
       // 点击空地 -> 沿最短路径逐格平滑移动
       if(this.manIsLine(man, cell)){
-        var path = this.findPath(man, cell);
-        if(!path || !path.length) return;
-        Sound.move();
-        this.createTimerIfNone();
-        await this.animateWalk(path);
-        var last = path[path.length - 1];
-        if(man.type === 6) man.type = 4;
-        else man.type = 5;
-        if(last.type === 4) last.type = 6;
-        else last.type = 2;
-        this.refreshAllMovable();
+        await this.walkTo(man, cell);
         return;
       }
 
-      // 推箱子：小人前进与箱子滚动同时进行
-      var pushTo = this.getPushBoxToCell(man, cell);
-      if(pushTo){
-        this.undoStack.push({
-          manL: man.idxL, manC: man.idxC, manType: man.type,
-          boxL: cell.idxL, boxC: cell.idxC, boxType: cell.type,
-          targetL: pushTo.idxL, targetC: pushTo.idxC, targetType: pushTo.type
-        });
-        Sound.push();
-        this.createTimerIfNone();
-        await this.animatePush(man, cell, pushTo);
-        this.cellChangeToEmpty(man);
-        this.cellChangeToEmpty(cell);
-        this.cellChangeToEmpty(pushTo);
-        this.cellChangeToMan(cell);
-        this.cellChangeToBox(pushTo);
-        this.refreshAllMovable();
-        this.updateUndoBtn();
-        this.checkWin();
-      }
+      // 点击相邻箱子 -> 先推动一格，再进入推箱子状态显示后续落点与方向
+      var isAdjacentBox = this.cellIsBox(cell) &&
+        (Math.abs(cell.idxL - man.idxL) + Math.abs(cell.idxC - man.idxC)) === 1;
+      if(isAdjacentBox) await this.pushOneStep(cell);
     },
 
     checkWin(){
@@ -1016,6 +1205,7 @@ body{
 
     async undo(){
       if(this.undoStack.length === 0 || this.animating) return;
+      this.exitPushMode();
       var step = this.undoStack.pop();
       var curMan = this.findManCell();
       var boxEl = this.boxSprites[this.cellKey(step.targetL, step.targetC)];
