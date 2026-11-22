@@ -332,6 +332,60 @@ body{
   background:rgba(0,255,120,0.35);
   box-shadow:inset 0 0 0 2px rgba(0,255,120,0.75);
 }
+/* 点击格子中心的受击特效：置于所有图层之上 */
+.hit-effect{
+  position:fixed;
+  left:0;
+  top:0;
+  width:0;
+  height:0;
+  z-index:9999;
+  pointer-events:none;
+}
+.hit-flash{
+  position:absolute;
+  left:50%;
+  top:50%;
+  width:var(--cell-size);
+  height:var(--cell-size);
+  background:#fff;
+  transform:translate(-50%,-50%) scale(0.6);
+  animation:hitFlash 180ms ease-out forwards;
+}
+.hit-ring{
+  position:absolute;
+  left:50%;
+  top:50%;
+  width:var(--cell-size);
+  height:var(--cell-size);
+  border:2px solid #fff;
+  box-shadow:0 0 12px rgba(255,255,255,0.95), inset 0 0 10px rgba(255,255,255,0.6);
+  transform:translate(-50%,-50%) scale(0.2);
+  animation:hitRing 380ms cubic-bezier(.2,.7,.3,1) forwards;
+}
+.hit-particle{
+  position:absolute;
+  left:-3px;
+  top:-3px;
+  width:6px;
+  height:6px;
+  background:#fff;
+  border-radius:50%;
+  box-shadow:0 0 8px #fff;
+  animation:hitParticle 420ms ease-out forwards;
+}
+@keyframes hitFlash{
+  0%{ opacity:0.9; transform:translate(-50%,-50%) scale(0.6); }
+  100%{ opacity:0; transform:translate(-50%,-50%) scale(1.4); }
+}
+@keyframes hitRing{
+  0%{ opacity:1; transform:translate(-50%,-50%) scale(0.2); }
+  100%{ opacity:0; transform:translate(-50%,-50%) scale(2.2); }
+}
+@keyframes hitParticle{
+  0%{ opacity:1; transform:translate(0,0) scale(1); }
+  100%{ opacity:0; transform:translate(var(--dx),var(--dy)) scale(0.2); }
+}
 .push-box-game .cell_box{
   background:url(res/push_box_box.png);
   background-size:var(--cell-size) var(--cell-size);
@@ -941,6 +995,25 @@ body{
       return true;
     },
 
+    // 点击远处箱子：走到它四周离小人最近的可达格（步数优先，其次上左下右）
+    async moveToNearestBoxSide(man, box){
+      var dirs = [[-1,0],[0,-1],[1,0],[0,1]];
+      var best = null;
+      for(var i=0; i<dirs.length; i++){
+        var side = this.getCell(box.idxL + dirs[i][0], box.idxC + dirs[i][1]);
+        if(!side || !this.manIsLine(man, side)) continue;
+        var path = this.findPath(man, side);
+        if(!path || !path.length) continue;
+        if(!best || path.length < best.steps){
+          best = { cell: side, steps: path.length };
+        }
+      }
+      if(!best) return false;
+      await this.walkTo(man, best.cell);
+      if(!this.gameOver) this.enterPushMode(this.findManCell(), box);
+      return true;
+    },
+
     commitPush(man, box, target){
       var dirL = target.idxL - box.idxL;
       var dirC = target.idxC - box.idxC;
@@ -1125,8 +1198,34 @@ body{
       this.syncSprites();
     },
 
+    playClickEffect(cell){
+      var el = this.cellEls[cell.idxL] && this.cellEls[cell.idxL][cell.idxC];
+      if(!el) return;
+      var rect = el.getBoundingClientRect();
+      var fx = document.createElement('div');
+      fx.className = 'hit-effect';
+      fx.style.left = (rect.left + rect.width / 2) + 'px';
+      fx.style.top = (rect.top + rect.height / 2) + 'px';
+      fx.appendChild(Object.assign(document.createElement('div'), { className:'hit-flash' }));
+      fx.appendChild(Object.assign(document.createElement('div'), { className:'hit-ring' }));
+      for(var i=0; i<8; i++){
+        var angle = (Math.PI * 2 * i / 8) + (Math.random() * 0.3 - 0.15);
+        var dist = 20 + Math.random() * 18;
+        var particle = document.createElement('div');
+        particle.className = 'hit-particle';
+        particle.style.setProperty('--dx', (Math.cos(angle) * dist) + 'px');
+        particle.style.setProperty('--dy', (Math.sin(angle) * dist) + 'px');
+        fx.appendChild(particle);
+      }
+      document.body.appendChild(fx);
+      setTimeout(function(){
+        if(fx.parentNode) fx.parentNode.removeChild(fx);
+      }, 520);
+    },
+
     async cellClick(cell){
       if(!cell || this.gameOver || this.disabled || this.animating) return;
+      this.playClickEffect(cell);
 
       if(this.pushMode){
         var mode = this.pushMode;
@@ -1162,7 +1261,11 @@ body{
       // 点击相邻箱子 -> 先推动一格，再进入推箱子状态显示后续落点与方向
       var isAdjacentBox = this.cellIsBox(cell) &&
         (Math.abs(cell.idxL - man.idxL) + Math.abs(cell.idxC - man.idxC)) === 1;
-      if(isAdjacentBox) await this.pushOneStep(cell);
+      if(isAdjacentBox){
+        await this.pushOneStep(cell);
+      } else if(this.cellIsBox(cell)){
+        await this.moveToNearestBoxSide(man, cell);
+      }
     },
 
     checkWin(){
