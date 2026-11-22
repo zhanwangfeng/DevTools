@@ -19,6 +19,7 @@
 </script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0;font-family:system-ui, sans-serif;}
+:root{--cell-size:40px;}
 body{
   background:#000;
   color:#fff;
@@ -30,6 +31,10 @@ body{
   align-items:center;
 }
 /* ========== push_box 游戏专用样式（Tetris 风格） ========== */
+.push-box-game{
+  width:100%;
+  max-width:520px;
+}
 .push-box-game .clearfix:after{
   content:"";
   display:table;
@@ -39,6 +44,7 @@ body{
 .push-box-game .mine-wrap{
   background:rgba(0,0,0,0.25);
   display:inline-block;
+  max-width:100%;
   border:1px solid rgba(255,255,255,0.12);
   border-radius:14px;
   padding:20px;
@@ -78,22 +84,28 @@ body{
   padding:12px;
   border-radius:10px;
   border:none;
+  max-width:100%;
+  text-align:center;
 }
 /* 信息面板（状态栏） */
 .push-box-game .game-tags{
   background:rgba(0,0,0,0.2);
   border-radius:8px;
   border:1px solid rgba(255,255,255,0.06);
-  padding:8px 16px;
+  padding:6px 8px;
   text-align:center;
   position:relative;
   margin-bottom:8px;
   display:flex;
   align-items:center;
-  justify-content:space-between;
+  justify-content:center;
+  flex-wrap:wrap;
+  gap:6px;
+  max-width:100%;
 }
 .push-box-game .game-tag-left{
   display:flex;
+  flex:1;
   flex-direction:column;
   align-items:center;
   gap:2px;
@@ -101,6 +113,7 @@ body{
 }
 .push-box-game .game-tag-right{
   display:flex;
+  flex:1;
   flex-direction:column;
   align-items:center;
   gap:2px;
@@ -125,11 +138,14 @@ body{
 /* 状态栏中心按钮区 */
 .push-box-game .game-tag-center{
   display:flex;
+  order:3;
+  width:100%;
   gap:6px;
   align-items:center;
-  padding:0 12px;
-  border-left:1px solid rgba(255,255,255,0.08);
-  border-right:1px solid rgba(255,255,255,0.08);
+  justify-content:center;
+  flex-wrap:wrap;
+  padding:6px 0 0;
+  border-top:1px solid rgba(255,255,255,0.08);
 }
 .push-box-game .game-tag-btn{
   padding:5px 12px;
@@ -204,12 +220,45 @@ body{
   display:inline-block;
   position:relative;
 }
+/* 动态角色层：用 transform 过渡实现格子间的平滑移动 */
+.push-box-game .sprite-layer{
+  position:absolute;
+  left:0;
+  top:0;
+  pointer-events:none;
+  z-index:5;
+}
+.push-box-game .sprite{
+  position:absolute;
+  left:0;
+  top:0;
+  width:var(--cell-size);
+  height:var(--cell-size);
+  background-size:var(--cell-size) var(--cell-size);
+  background-repeat:no-repeat;
+  will-change:transform;
+  transition:transform 120ms ease-in-out;
+}
+.push-box-game .sprite.no-anim{
+  transition:none;
+}
+.push-box-game .sprite-man{
+  background-image:url(res/push_box_man.png);
+  z-index:6;
+}
+.push-box-game .sprite-box{
+  background-image:url(res/push_box_box.png);
+}
+.push-box-game .sprite-box-ok{
+  background-image:url(res/push_box_box_ok.png);
+}
 .push-box-game .mine-con{
   position:relative;
 }
 .push-box-game .mine-canvas-wrap{
   position:relative;
   display:inline-block;
+  max-width:100%;
 }
 /* 胜利遮罩 */
 .push-box-game .win-overlay{
@@ -243,46 +292,68 @@ body{
   display:flex;
 }
 .push-box-game .cell{
-  width:40px;
-  height:40px;
+  width:var(--cell-size);
+  height:var(--cell-size);
   flex-shrink:0;
   display:block;
   text-align:center;
-  line-height:40px;
+  line-height:var(--cell-size);
   cursor:pointer;
   border-radius:3px;
+  touch-action:manipulation;
+  -webkit-tap-highlight-color:transparent;
 }
 .push-box-game .cell_box{
   background:url(res/push_box_box.png);
-  background-size:40px;
+  background-size:var(--cell-size) var(--cell-size);
   box-shadow:0 0 8px rgba(255,200,0,0.4);
 }
 .push-box-game .cell_box_tar{
   background:url(res/push_box_box_ok.png);
-  background-size:40px;
+  background-size:var(--cell-size) var(--cell-size);
   box-shadow:0 0 8px rgba(0,255,100,0.5);
 }
 .push-box-game .cell_ground{
   background:url(res/push_box_ground.png);
-  background-size:40px;
+  background-size:var(--cell-size) var(--cell-size);
 }
 .push-box-game .cell_wall{
   background:url(res/push_box_wall.png);
-  background-size:40px;
+  background-size:var(--cell-size) var(--cell-size);
   box-shadow:0 0 6px rgba(255,255,255,0.08);
 }
 .push-box-game .cell_man{
   background:url(res/push_box_man.png);
-  background-size:40px;
+  background-size:var(--cell-size) var(--cell-size);
   box-shadow:0 0 10px rgba(100,200,255,0.5);
 }
 .push-box-game .cell_target{
   background:url(res/push_box_target.png);
-  background-size:40px;
+  background-size:var(--cell-size) var(--cell-size);
   box-shadow:0 0 8px rgba(255,100,100,0.3);
 }
 .push-box-game .mr5{
   margin-right:5px;
+}
+/* 窄屏适配：压缩外框与状态栏，避免横向溢出 */
+@media (max-width: 560px){
+  .push-box-game .mine-wrap{ padding:10px; }
+  .push-box-game .mine-con{ padding:8px; }
+  .push-box-game .game-tag-btn{ padding:4px 8px; font-size:11px; }
+  .push-box-game .stat-value,
+  .push-box-game .game-tag-level{ font-size:18px; }
+  .push-box-game .game-title{ margin-top:10px; margin-bottom:8px; }
+  .push-box-game .title-main{ font-size:17px; }
+  .push-box-game .nav-back{ padding:8px 10px; }
+  .push-box-game .nav-back-link{ padding:6px 10px; font-size:12px; }
+  .push-box-game .win-overlay .win-title{ font-size:20px; }
+  .push-box-game .win-overlay .win-hint{ font-size:12px; }
+}
+@media (max-width: 360px){
+  .push-box-game .game-tag-center{ gap:4px; }
+  .push-box-game .game-tag-btn{ padding:3px 6px; font-size:10px; }
+  .push-box-game .mine-wrap{ padding:8px; }
+  .push-box-game .mine-con{ padding:6px; }
 }
 </style>
 </head>
@@ -329,7 +400,7 @@ body{
       </div>
     </div>
     <!-- 固定位置广告 -->
-    <div style="margin-top:20px;width:100%;max-width:505px;">
+    <div style="margin-top:20px;width:100%;max-width:100%;">
       <ins class="adsbygoogle" style="display:block" data-ad-client="ca-pub-2924816368457956" data-ad-slot="1214720725" data-ad-format="auto" data-full-width-responsive="true"></ins>
     </div>
   </div>
@@ -405,6 +476,11 @@ body{
     column: 0,
     cells: [],
     cellEls: [],
+    spriteLayer: null,
+    manSprite: null,
+    boxSprites: {},
+    animating: false,
+    moveDuration: 120,
     gameOver: false,
     win: false,
     disabled: false,
@@ -433,6 +509,15 @@ body{
 
     bindEvents(){
       document.addEventListener('keydown', (e) => this.onKeyDown(e));
+      // 点击/触摸地图：空地移动小人，相邻箱子推动
+      this.canvas.addEventListener('click', (e) => {
+        var el = e.target.closest('.cell');
+        if(!el || !this.canvas.contains(el)) return;
+        var cell = this.getCell(parseInt(el.dataset.l, 10), parseInt(el.dataset.c, 10));
+        if(cell) this.cellClick(cell);
+      });
+      window.addEventListener('resize', () => this.fitCanvasToViewport());
+      window.addEventListener('orientationchange', () => this.fitCanvasToViewport());
       document.getElementById('btnPrev').onclick = () => {
         if(this.disabled) return;
         Sound.click();
@@ -474,6 +559,35 @@ body{
       var btn = document.getElementById('btnUndo');
       if(this.undoStack.length === 0) btn.classList.add('disabled');
       else btn.classList.remove('disabled');
+    },
+
+    // 屏幕过窄时按宽度等比缩小格子，屏幕足够宽时保持 40px 不放大
+    fitCanvasToViewport(){
+      var BASE = 40;
+      var root = document.documentElement;
+      var wrap = document.getElementById('mineWrap');
+      var con = this.canvas.closest('.mine-con');
+      if(!wrap || !con) return;
+      // 先恢复基准尺寸，保证每次计算都基于 40px 的原始地图宽度
+      root.style.setProperty('--cell-size', BASE + 'px');
+      function px(v){ return parseFloat(v) || 0; }
+      var ws = getComputedStyle(wrap);
+      var cs = getComputedStyle(con);
+      var ms = getComputedStyle(this.canvas);
+      var chrome = px(ws.paddingLeft) + px(ws.paddingRight)
+                 + px(ws.borderLeftWidth) + px(ws.borderRightWidth)
+                 + px(cs.paddingLeft) + px(cs.paddingRight)
+                 + px(ms.borderLeftWidth) + px(ms.borderRightWidth);
+      var host = wrap.parentElement;
+      var hostWidth = host ? host.clientWidth : root.clientWidth;
+      var limit = Math.min(root.clientWidth, hostWidth || root.clientWidth);
+      var available = limit - chrome - 8;
+      var natural = this.column * BASE;
+      var size = BASE;
+      if(natural > available && available > 0){
+        size = Math.max(10, Math.floor(BASE * available / natural));
+      }
+      root.style.setProperty('--cell-size', size + 'px');
     },
 
     onKeyDown(e){
@@ -551,6 +665,7 @@ body{
       }
 
       this.renderGrid();
+      this.fitCanvasToViewport();
       this.refreshAllMovable();
       this.checkWin();
       this.updateStatus();
@@ -602,22 +717,121 @@ body{
         this.canvas.appendChild(rowDiv);
         this.cellEls.push(rowEls);
       }
+      this.spriteLayer = document.createElement('div');
+      this.spriteLayer.className = 'sprite-layer';
+      this.canvas.appendChild(this.spriteLayer);
+      this.manSprite = document.createElement('div');
+      this.manSprite.className = 'sprite sprite-man';
+      this.spriteLayer.appendChild(this.manSprite);
+      this.boxSprites = {};
+      this.syncSprites(true);
     },
 
+    // 格子只渲染静态地面/墙/目标，角色由 sprite 层独立渲染
     getCellClass(cell){
       if(cell.type === 1) return 'cell cell_wall';
-      if(cell.type === 2 || cell.type === 6) return 'cell cell_man';
-      if(cell.type === 3) return 'cell cell_box';
-      if(cell.type === 4) return 'cell cell_target';
-      if(cell.type === 5) return 'cell cell_ground';
-      if(cell.type === 7) return 'cell cell_box_tar';
-      return 'cell';
+      if(cell.type === 4 || cell.type === 6 || cell.type === 7) return 'cell cell_target';
+      return 'cell cell_ground';
     },
 
     updateCellClass(cell){
       if(this.cellEls[cell.idxL] && this.cellEls[cell.idxL][cell.idxC]){
         this.cellEls[cell.idxL][cell.idxC].className = this.getCellClass(cell);
       }
+    },
+
+    cellKey(l, c){
+      return l + ',' + c;
+    },
+
+    setSpritePos(el, l, c, noAnim){
+      if(!el) return;
+      if(noAnim) el.classList.add('no-anim');
+      el.style.transform = 'translate(calc(var(--cell-size) * ' + c + '), calc(var(--cell-size) * ' + l + '))';
+      if(noAnim){
+        void el.offsetWidth;
+        el.classList.remove('no-anim');
+      }
+    },
+
+    syncSprites(noAnim){
+      if(!this.spriteLayer) return;
+      var man = this.findManCell();
+      if(man) this.setSpritePos(this.manSprite, man.idxL, man.idxC, noAnim);
+      var self = this;
+      Object.keys(this.boxSprites).forEach(function(k){
+        var el = self.boxSprites[k];
+        if(el.parentNode) el.parentNode.removeChild(el);
+      });
+      this.boxSprites = {};
+      for(var l=0; l<this.line; l++){
+        for(var c=0; c<this.column; c++){
+          var t = this.cells[l][c].type;
+          if(t === 3 || t === 7){
+            var el = document.createElement('div');
+            el.className = 'sprite ' + (t === 7 ? 'sprite-box-ok' : 'sprite-box');
+            this.spriteLayer.appendChild(el);
+            this.setSpritePos(el, l, c, noAnim);
+            this.boxSprites[this.cellKey(l, c)] = el;
+          }
+        }
+      }
+    },
+
+    wait(ms){
+      return new Promise(function(resolve){ setTimeout(resolve, ms); });
+    },
+
+    async animateWalk(path){
+      if(!path || !path.length) return;
+      this.animating = true;
+      for(var i=0; i<path.length; i++){
+        this.setSpritePos(this.manSprite, path[i].idxL, path[i].idxC);
+        await this.wait(this.moveDuration);
+      }
+      this.animating = false;
+    },
+
+    async animatePush(manCell, boxCell, pushTo){
+      this.animating = true;
+      var boxEl = this.boxSprites[this.cellKey(boxCell.idxL, boxCell.idxC)];
+      this.setSpritePos(this.manSprite, boxCell.idxL, boxCell.idxC);
+      if(boxEl){
+        boxEl.className = 'sprite ' + (pushTo.type === 4 ? 'sprite-box-ok' : 'sprite-box');
+        this.setSpritePos(boxEl, pushTo.idxL, pushTo.idxC);
+      }
+      await this.wait(this.moveDuration);
+      this.animating = false;
+    },
+
+    findPath(start, target){
+      var keyOf = function(c){ return c.idxL + ',' + c.idxC; };
+      var queue = [start];
+      var prev = {};
+      prev[keyOf(start)] = null;
+      var dirs = [[-1,0],[1,0],[0,-1],[0,1]];
+      var qi = 0;
+      while(qi < queue.length){
+        var cur = queue[qi++];
+        if(cur === target) break;
+        for(var d=0; d<dirs.length; d++){
+          var nb = this.getCell(cur.idxL + dirs[d][0], cur.idxC + dirs[d][1]);
+          if(!nb || !this.cellIsEmpty(nb)) continue;
+          var k = keyOf(nb);
+          if(prev[k] !== undefined) continue;
+          prev[k] = cur;
+          queue.push(nb);
+        }
+      }
+      var tk = keyOf(target);
+      if(prev[tk] === undefined) return null;
+      var path = [];
+      var cur = target;
+      while(cur && cur !== start){
+        path.unshift(cur);
+        cur = prev[keyOf(cur)];
+      }
+      return path;
     },
 
     // ---- 游戏逻辑（保持原样） ----
@@ -716,43 +930,47 @@ body{
       for(var l=0; l<this.line; l++)
         for(var c=0; c<this.column; c++)
           this.updateCellClass(this.cells[l][c]);
+      this.syncSprites();
     },
 
-    cellClick(cell){
-      if(!cell || this.gameOver || this.disabled) return;
+    async cellClick(cell){
+      if(!cell || this.gameOver || this.disabled || this.animating) return;
       var man = this.findManCell();
       if(!man) return;
 
-      // 点击空地 -> 移动
+      // 点击空地 -> 沿最短路径逐格平滑移动
       if(this.manIsLine(man, cell)){
-        if(cell.type === 4) cell.type = 6;
-        else cell.type = 2;
+        var path = this.findPath(man, cell);
+        if(!path || !path.length) return;
+        Sound.move();
+        this.createTimerIfNone();
+        await this.animateWalk(path);
+        var last = path[path.length - 1];
         if(man.type === 6) man.type = 4;
         else man.type = 5;
-        this.updateCellClass(man);
-        this.updateCellClass(cell);
-        this.createTimerIfNone();
-        Sound.move();
+        if(last.type === 4) last.type = 6;
+        else last.type = 2;
+        this.refreshAllMovable();
         return;
       }
 
-      // 推箱子
+      // 推箱子：小人前进与箱子滚动同时进行
       var pushTo = this.getPushBoxToCell(man, cell);
       if(pushTo){
-        // 记录推箱子步骤（用于撤销）
         this.undoStack.push({
           manL: man.idxL, manC: man.idxC, manType: man.type,
           boxL: cell.idxL, boxC: cell.idxC, boxType: cell.type,
           targetL: pushTo.idxL, targetC: pushTo.idxC, targetType: pushTo.type
         });
+        Sound.push();
+        this.createTimerIfNone();
+        await this.animatePush(man, cell, pushTo);
         this.cellChangeToEmpty(man);
         this.cellChangeToEmpty(cell);
         this.cellChangeToEmpty(pushTo);
         this.cellChangeToMan(cell);
         this.cellChangeToBox(pushTo);
         this.refreshAllMovable();
-        this.createTimerIfNone();
-        Sound.push();
         this.updateUndoBtn();
         this.checkWin();
       }
@@ -796,29 +1014,32 @@ body{
       this.loadLevel(this.curLevel);
     },
 
-    undo(){
-      if(this.undoStack.length === 0) return;
+    async undo(){
+      if(this.undoStack.length === 0 || this.animating) return;
       var step = this.undoStack.pop();
-      // 先清除当前人的位置（人可能在推箱子之后又走动了，位置已变）
       var curMan = this.findManCell();
+      var boxEl = this.boxSprites[this.cellKey(step.targetL, step.targetC)];
+      this.animating = true;
+      if(curMan) this.setSpritePos(this.manSprite, step.manL, step.manC);
+      if(boxEl){
+        boxEl.className = 'sprite ' + (step.boxType === 7 ? 'sprite-box-ok' : 'sprite-box');
+        this.setSpritePos(boxEl, step.boxL, step.boxC);
+      }
+      await this.wait(this.moveDuration);
+      this.animating = false;
+
       if(curMan){
         if(curMan.type === 6) curMan.type = 4;
         else curMan.type = 5;
       }
-      // 恢复推箱子前的状态
       var man = this.cells[step.manL][step.manC];
       var box = this.cells[step.boxL][step.boxC];
       var target = this.cells[step.targetL][step.targetC];
       man.type = step.manType;
       box.type = step.boxType;
       target.type = step.targetType;
-      // 刷新显示
-      this.updateCellClass(man);
-      this.updateCellClass(box);
-      this.updateCellClass(target);
-      if(curMan) this.updateCellClass(curMan);
       this.refreshAllMovable();
-      this.updateStatus();
+      this.checkWin();
       this.updateUndoBtn();
     },
 
