@@ -21,6 +21,7 @@ a{color:#7cf;text-decoration:none;}
 .top-bar{display:flex;align-items:center;gap:12px;margin-bottom:14px;flex-wrap:wrap;}
 .top-bar h1{font-size:20px;letter-spacing:1px;}
 .back-link{padding:6px 12px;border:1px solid rgba(255,255,255,.16);border-radius:8px;background:rgba(0,0,0,.4);}
+.mode-link{margin-left:auto;white-space:nowrap;}
 .tabs{display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap;}
 .tab{padding:8px 16px;border:1px solid rgba(255,255,255,.12);border-radius:8px;background:rgba(30,40,60,.4);color:#9ab;cursor:pointer;font-size:13px;}
 .tab.active{background:rgba(60,120,180,.35);border-color:rgba(124,204,255,.5);color:#fff;}
@@ -132,17 +133,30 @@ input[type=number]{width:70px;}
 @keyframes hitFlash{0%{opacity:0.9;transform:translate(-50%,-50%) scale(0.6);}100%{opacity:0;transform:translate(-50%,-50%) scale(1.4);}}
 @keyframes hitRing{0%{opacity:1;transform:translate(-50%,-50%) scale(0.2);}100%{opacity:0;transform:translate(-50%,-50%) scale(2.2);}}
 @keyframes hitParticle{0%{opacity:1;transform:translate(0,0) scale(1);}100%{opacity:0;transform:translate(var(--dx),var(--dy)) scale(0.2);}}
-.library{display:flex;gap:14px;flex-wrap:wrap;}
-.lib-col{flex:1;min-width:280px;}
-.lib-list{display:flex;flex-direction:column;gap:8px;max-height:260px;overflow:auto;}
-#officialList{max-height:none;overflow:visible;}
+.lib-list{display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:10px;max-height:none;overflow:visible;}
+.lib-list .lib-item{flex-direction:column;align-items:stretch;gap:6px;padding:8px;min-width:0;}
+.lib-list .lib-preview{width:100%;aspect-ratio:1;display:flex;align-items:center;justify-content:center;overflow:hidden;}
+.lib-list .lib-preview canvas{width:100%;height:100%;object-fit:contain;}
+.lib-list .lib-info{width:100%;min-width:0;}
+.lib-list .lib-name{text-align:center;font-size:12px;}
+
 .lib-item{display:flex;align-items:center;gap:8px;padding:8px;border:1px solid rgba(255,255,255,.1);border-radius:7px;background:rgba(20,28,40,.5);}
+.lib-preview{flex-shrink:0;image-rendering:pixelated;border:1px solid rgba(255,255,255,.18);background:#000;}
+.lib-preview canvas{display:block;image-rendering:pixelated;}
 .lib-info{flex:1;min-width:0;}
 .lib-name{font-size:13px;color:#dce8ff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 .lib-meta{font-size:11px;color:#789;margin-top:2px;}
 .lib-empty{font-size:12px;color:#678;padding:10px 0;}
-.saved-tip{font-size:11px;color:#7cf;opacity:0;transition:opacity .3s;}
-.saved-tip.show{opacity:1;}
+.lib-item.official-item{cursor:pointer;}
+.official-item:hover{border-color:rgba(124,204,255,.45);background:rgba(30,45,65,.6);}
+.detail-mask{position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:100;display:none;align-items:center;justify-content:center;padding:16px;}
+.detail-mask.show{display:flex;}
+.detail-panel{background:#111a28;border:1px solid rgba(124,204,255,.35);border-radius:12px;padding:20px;max-width:420px;width:100%;box-shadow:0 10px 40px rgba(0,0,0,.6);}
+.detail-panel h2{font-size:17px;color:#7cf;margin-bottom:12px;word-break:break-all;}
+.detail-preview{display:flex;align-items:center;justify-content:center;height:180px;background:#000;border:1px solid rgba(255,255,255,.14);border-radius:6px;padding:10px;margin-bottom:14px;}
+.detail-preview canvas{width:100%;height:100%;object-fit:contain;image-rendering:pixelated;}
+.detail-meta{font-size:12px;color:#9ab;line-height:1.8;margin-bottom:16px;}
+.detail-actions{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end;}
 @media(max-width:560px){
   .panel{padding:12px;}
   .top-bar h1{font-size:17px;}
@@ -155,7 +169,7 @@ input[type=number]{width:70px;}
   <div class="top-bar">
     <a class="back-link" href="index.html">← 返回游戏</a>
     <h1>正向推箱子关卡编辑器</h1>
-    <span class="saved-tip" id="savedTip">草稿已自动保存</span>
+    <a class="back-link mode-link" href="editor_backward.html">反向编辑</a>
   </div>
 
   <div class="tabs">
@@ -165,8 +179,8 @@ input[type=number]{width:70px;}
 
   <section class="panel" id="editPanel">
     <div class="row">
-      <label>宽 <input type="number" id="mapCols" min="4" max="30" value="10" /></label>
-      <label>高 <input type="number" id="mapRows" min="4" max="24" value="10" /></label>
+      <label>宽 <input type="number" id="mapCols" min="6" max="20" value="10" /></label>
+      <label>高 <input type="number" id="mapRows" min="6" max="20" value="10" /></label>
       <button class="btn" id="btnResize">应用尺寸</button>
       <button class="btn" id="btnNew">新建空白</button>
       <button class="btn" id="btnUndo" disabled>撤销</button>
@@ -210,17 +224,22 @@ input[type=number]{width:70px;}
 
   <section class="panel">
     <div class="panel-title">草稿与正式关卡</div>
-    <div class="library">
-      <div class="lib-col">
-        <div class="panel-title">草稿（自动保存）</div>
-        <div class="lib-list" id="draftList"></div>
-      </div>
-      <div class="lib-col">
-        <div class="panel-title">正式关卡（试玩通关后保存）</div>
-        <div class="lib-list" id="officialList"></div>
-      </div>
-    </div>
+    <div class="lib-list" id="combinedList"></div>
   </section>
+</div>
+
+<div class="detail-mask" id="detailMask">
+  <div class="detail-panel">
+    <h2 id="detailName"></h2>
+    <div class="detail-preview" id="detailPreview"></div>
+    <div class="detail-meta" id="detailMeta"></div>
+    <div class="detail-actions">
+      <button class="btn" id="detailClose">关闭</button>
+      <button class="btn danger" id="detailDelete">删除</button>
+      <button class="btn" id="detailDownload">下载</button>
+      <button class="btn primary" id="detailLoad">加载</button>
+    </div>
+  </div>
 </div>
 
 <script>
@@ -257,12 +276,6 @@ function readStore(key){ try{ return JSON.parse(localStorage.getItem(key) || '[]
 function writeStore(key, arr){ try{ localStorage.setItem(key, JSON.stringify(arr)); }catch(e){ alert('本地存储写入失败：' + e.message); } }
 
 var saveTimer = null;
-function showSavedTip(){
-  var tip=document.getElementById('savedTip');
-  tip.classList.add('show');
-  clearTimeout(tip._t);
-  tip._t=setTimeout(function(){ tip.classList.remove('show'); }, 1200);
-}
 function scheduleSave(){
   clearTimeout(saveTimer);
   saveTimer=setTimeout(saveDraft, 400);
@@ -279,7 +292,6 @@ function saveDraft(){
   };
   writeStore(KEYS.draft, [rec]);
   renderLibrary();
-  showSavedTip();
 }
 
 var undoStack=[];
@@ -385,10 +397,12 @@ function updateValidation(){
   var men=countChars(state.grid,['@','!']);
   var boxes=countChars(state.grid,['$','*']);
   var targets=countChars(state.grid,['.','*','!']);
+  var looseBoxes=countChars(state.grid,['$']);
   var msg='', ok=false;
   if(men!==1) msg='必须有且只有 1 个小人（当前 '+men+'）';
   else if(boxes<1) msg='至少放置 1 个箱子';
   else if(targets!==boxes) msg='目标数必须等于箱子数（目标 '+targets+' / 箱子 '+boxes+'）';
+  else if(looseBoxes<1) msg='至少要有 1 个箱子不在目标上';
   else { msg='校验通过：1 个小人，'+boxes+' 个箱子，'+targets+' 个目标'; ok=true; }
   el.textContent=msg;
   el.className='status '+(ok?'ok':'bad');
@@ -454,41 +468,77 @@ function paintCell(l,c){
   }
 }
 
+var PREVIEW_COLORS={
+  '#':'#5a6472', ' ':'#12151c', '.':'#e05a5a',
+  '$':'#e8b84b', '*':'#4ad07a', '@':'#5ab0ff', '!':'#5ab0ff'
+};
+function makePreview(grid){
+  var wrap=document.createElement('div'); wrap.className='lib-preview';
+  if(!Array.isArray(grid)||!grid.length) return wrap;
+  var rows=grid.length, cols=grid[0].length||0;
+  var canvas=document.createElement('canvas');
+  canvas.width=cols*2; canvas.height=rows*2;
+  var ctx=canvas.getContext('2d');
+  if(!ctx) return wrap;
+  for(var i=0;i<rows;i++){
+    for(var j=0;j<(grid[i]||[]).length;j++){
+      ctx.fillStyle=PREVIEW_COLORS[grid[i][j]]||'#12151c';
+      ctx.fillRect(j*2,i*2,2,2);
+    }
+  }
+  wrap.appendChild(canvas);
+  return wrap;
+}
+var detailCurrentRec=null, detailIsDraft=false;
+function openOfficialDetail(rec, isDraft){
+  detailCurrentRec=rec; detailIsDraft=!!isDraft;
+  var mask=document.getElementById('detailMask');
+  document.getElementById('detailName').textContent=rec.name+(isDraft?'（草稿）':'');
+  document.getElementById('detailMeta').innerHTML=
+    '尺寸：'+rec.cols+'×'+rec.rows+'<br>'+
+    (isDraft
+      ? '保存时间：'+timeText(rec.updatedAt)
+      : '创建时间：'+timeText(rec.createdAt)+'<br>'+
+        (rec.solvedSteps?('解题步数：'+rec.solvedSteps+' 步<br>'):'')+
+        '关卡编号：'+(rec.fileNo||1));
+  var downBtn=document.getElementById('detailDownload');
+  if(downBtn) downBtn.style.display=isDraft?'none':'';
+  var box=document.getElementById('detailPreview');
+  box.innerHTML='';
+  var canvas=makePreview(rec.grid).querySelector('canvas');
+  if(canvas) box.appendChild(canvas);
+  mask.classList.add('show');
+}
+function closeOfficialDetail(){
+  document.getElementById('detailMask').classList.remove('show');
+  detailCurrentRec=null;
+}
 function renderLibrary(){
   var drafts=readStore(KEYS.draft), official=readStore(KEYS.official);
-  var dl=document.getElementById('draftList');
-  var ol=document.getElementById('officialList');
-  dl.innerHTML=''; ol.innerHTML='';
-  if(!drafts.length) dl.innerHTML='<div class="lib-empty">暂无草稿</div>';
-  if(!official.length) ol.innerHTML='<div class="lib-empty">暂无正式关卡（试玩通关后可保存）</div>';
+  var box=document.getElementById('combinedList');
+  box.innerHTML='';
   drafts.forEach(function(rec){
-    var d=document.createElement('div'); d.className='lib-item';
-    d.innerHTML='<div class="lib-info"><div class="lib-name">'+esc(rec.name)+'</div><div class="lib-meta">'+rec.cols+'×'+rec.rows+' · '+timeText(rec.updatedAt)+'</div></div>';
-    var load=document.createElement('button'); load.className='btn'; load.textContent='加载'; load.onclick=function(){ loadRecord(rec,true); };
-    var del=document.createElement('button'); del.className='btn danger'; del.textContent='删除'; del.onclick=function(){ if(confirm('删除草稿「'+rec.name+'」？')){ writeStore(KEYS.draft, readStore(KEYS.draft).filter(function(x){return x.id!==rec.id;})); renderLibrary(); } };
-    d.appendChild(load); d.appendChild(del); dl.appendChild(d);
+    var d=document.createElement('div'); d.className='lib-item draft-item';
+    d.innerHTML='<div class="lib-info"><div class="lib-name">(草稿)</div></div>';
+    d.insertBefore(makePreview(rec.grid), d.firstChild);
+    d.onclick=function(){ openOfficialDetail(rec,true); };
+    box.appendChild(d);
   });
   official.forEach(function(rec){
-    var d=document.createElement('div'); d.className='lib-item';
-    d.innerHTML='<div class="lib-info"><div class="lib-name">'+esc(rec.name)+'</div><div class="lib-meta">'+rec.cols+'×'+rec.rows+' · '+timeText(rec.createdAt)+(rec.solvedSteps?' · '+rec.solvedSteps+' 步':'')+'</div></div>';
-    var load=document.createElement('button'); load.className='btn'; load.textContent='加载'; load.onclick=function(){ loadRecord(rec,false); };
-    var down=document.createElement('button'); down.className='btn'; down.textContent='下载'; down.onclick=function(){ downloadLevel(rec); };
-    var del=document.createElement('button'); del.className='btn danger'; del.textContent='删除'; del.onclick=function(){
-      if(!confirm('删除正式关卡「'+rec.name+'」？')) return;
-      writeStore(KEYS.official, readStore(KEYS.official).filter(function(x){ return x.id!==rec.id; }));
-      renderLibrary();
-    };
-    d.appendChild(load); d.appendChild(down); d.appendChild(del); ol.appendChild(d);
+    var d=document.createElement('div'); d.className='lib-item official-item';
+    d.innerHTML='<div class="lib-info"><div class="lib-name">'+esc(rec.name)+'</div></div>';
+    d.insertBefore(makePreview(rec.grid), d.firstChild);
+    d.onclick=function(){ openOfficialDetail(rec); };
+    box.appendChild(d);
   });
-
-  function loadRecord(rec, isDraft){
-    state.name=rec.name; state.rows=rec.rows; state.cols=rec.cols;
-    state.grid=clone(rec.grid);
-    state.activeDraftId=isDraft?rec.id:null;
-    state.play=null; state.step=1;
-    undoStack=[]; updateUndoBtn();
-    switchStep(1);
-  }
+}
+function loadRecord(rec, isDraft){
+  state.name=rec.name; state.rows=rec.rows; state.cols=rec.cols;
+  state.grid=clone(rec.grid);
+  state.activeDraftId=isDraft?rec.id:null;
+  state.play=null; state.step=1;
+  undoStack=[]; updateUndoBtn();
+  switchStep(1);
 }
 
 function switchStep(step){
@@ -1041,6 +1091,19 @@ function backToEdit(){
   switchStep(1);
   renderLibrary();
 }
+function pGridToChars(){
+  var p=state.play;
+  var g=[];
+  for(var i=0;i<p.rows;i++){
+    var row=[];
+    for(var j=0;j<p.cols;j++){
+      var t=p.cells[i][j].type;
+      row.push(t===1?'#':t===2?'@':t===3?'$':t===4?'.':t===5?' ':t===6?'!':'*');
+    }
+    g.push(row);
+  }
+  return g;
+}
 function levelText(rec){
   return rec.grid.map(function(r){ return r.join(''); }).join('\n').replace(/[\s\n]+$/,'')+'\n\n';
 }
@@ -1067,6 +1130,7 @@ function saveOfficial(){
     grid:clone(state.grid),
     createdAt:Date.now(),
     solvedSteps:state.play.steps,
+    solvedGrid:pGridToChars(),
     fileNo:maxNo+1
   };
   list.push(rec);
@@ -1099,6 +1163,24 @@ function bind(){
   renderLibrary();
   if(!drafts.length) saveDraft();
 
+  document.getElementById('detailClose').onclick=closeOfficialDetail;
+  document.getElementById('detailMask').onclick=function(e){ if(e.target===this) closeOfficialDetail(); };
+  document.getElementById('detailLoad').onclick=function(){
+    if(!detailCurrentRec) return;
+    var rec=detailCurrentRec, isDraft=detailIsDraft;
+    closeOfficialDetail(); loadRecord(rec,isDraft);
+  };
+  document.getElementById('detailDownload').onclick=function(){
+    if(detailCurrentRec) downloadLevel(detailCurrentRec);
+  };
+  document.getElementById('detailDelete').onclick=function(){
+    var rec=detailCurrentRec, isDraft=detailIsDraft; if(!rec) return;
+    if(!confirm('删除'+(isDraft?'草稿':'正式关卡')+'「'+rec.name+'」？')) return;
+    writeStore(isDraft?KEYS.draft:KEYS.official,
+      readStore(isDraft?KEYS.draft:KEYS.official).filter(function(x){ return x.id!==rec.id; }));
+    closeOfficialDetail(); renderLibrary();
+  };
+
   var canvas=document.getElementById('editCanvas');
   canvas.addEventListener('pointerdown',function(e){
     painting=true;
@@ -1119,8 +1201,8 @@ function bind(){
   window.addEventListener('pointercancel',function(){ painting=false; });
 
   document.getElementById('btnResize').onclick=function(){
-    var r=Math.max(4,Math.min(24,parseInt(document.getElementById('mapRows').value,10)||10));
-    var c=Math.max(4,Math.min(30,parseInt(document.getElementById('mapCols').value,10)||10));
+    var r=Math.max(6,Math.min(20,parseInt(document.getElementById('mapRows').value,10)||10));
+    var c=Math.max(6,Math.min(20,parseInt(document.getElementById('mapCols').value,10)||10));
     if(r===state.rows&&c===state.cols) return;
     pushUndo();
     var g=createGrid(r,c,' ');

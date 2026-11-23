@@ -309,6 +309,20 @@ body{
   color:#b8d8ff;
   opacity:0.7;
 }
+/* 自定义关卡为空提示弹框 */
+.push-box-game .custom-empty-mask{
+  position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:50;
+  display:none;align-items:center;justify-content:center;padding:16px;
+}
+.push-box-game .custom-empty-mask.show{ display:flex; }
+.push-box-game .custom-empty-panel{
+  background:#111a28;border:1px solid rgba(124,204,255,.35);border-radius:12px;
+  padding:22px;max-width:340px;width:100%;text-align:center;
+  box-shadow:0 10px 40px rgba(0,0,0,.6);
+}
+.push-box-game .custom-empty-panel .ce-title{font-size:18px;color:#7cf;margin-bottom:10px;font-weight:bold;}
+.push-box-game .custom-empty-panel .ce-hint{font-size:13px;color:#9ab;line-height:1.7;margin-bottom:18px;}
+.push-box-game .custom-empty-panel .ce-actions{display:flex;gap:10px;justify-content:center;}
 /* 格子样式 */
 .push-box-game .mine-canvas > div{
   display:flex;
@@ -495,6 +509,16 @@ body{
               <div class="win-title">恭喜过关</div>
               <div class="win-hint">即将进入下一关</div>
             </div>
+            <div class="custom-empty-mask" id="customEmptyMask">
+              <div class="custom-empty-panel">
+                <div class="ce-title">暂无自定义关卡</div>
+                <div class="ce-hint">请先使用关卡编辑器创建并保存一个关卡，之后即可在此切换游玩。</div>
+                <div class="ce-actions">
+                  <span class="game-tag-btn" id="btnCustomEmptyClose">关闭</span>
+                  <span class="game-tag-btn mode-btn" id="btnCustomEmptyCreate">创建</span>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -632,6 +656,14 @@ body{
         Sound.click();
         window.location.href = 'editor_forward.html';
       };
+      document.getElementById('btnCustomEmptyClose').onclick = () => {
+        Sound.click();
+        document.getElementById('customEmptyMask').classList.remove('show');
+      };
+      document.getElementById('btnCustomEmptyCreate').onclick = () => {
+        Sound.click();
+        window.location.href = 'editor_forward.html';
+      };
       document.getElementById('btnPrev').onclick = () => {
         if(this.disabled) return;
         Sound.click();
@@ -745,7 +777,7 @@ body{
       if(mode === 'custom'){
         this.loadCustomLevels();
         if(!this.customLevels.length){
-          alert('暂无自定义关卡，请先用关卡编辑器创建并试玩通关保存。');
+          document.getElementById('customEmptyMask').classList.add('show');
           return;
         }
       }
