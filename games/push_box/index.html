@@ -331,10 +331,21 @@ body{
   content:"";
   position:absolute;
   inset:0;
-  z-index:2;
+  z-index:6;
   pointer-events:none;
   background:rgba(0,255,120,0.35);
   box-shadow:inset 0 0 0 2px rgba(0,255,120,0.75);
+}
+/* 远处箱子选中后，可达侧显示半透明小人预览 */
+.push-box-game .remote-ghost{
+  position:absolute;
+  inset:0;
+  z-index:4;
+  pointer-events:none;
+  opacity:0.25;
+  background-image:url(res/push_box_man.png);
+  background-size:var(--cell-size) var(--cell-size);
+  background-repeat:no-repeat;
 }
 /* 点击格子中心的受击特效：置于所有图层之上 */
 .hit-effect{
@@ -1049,7 +1060,80 @@ body{
       if(boxEl){
         boxEl.classList.remove('pushing', 'push-dir-right', 'push-dir-down', 'push-dir-left', 'push-dir-up');
       }
+      if(mode.candidates){
+        mode.candidates.forEach(function(c){
+          if(c.ghostEl && c.ghostEl.parentNode) c.ghostEl.parentNode.removeChild(c.ghostEl);
+        });
+      }
       this.pushMode = null;
+    },
+
+    // 点击远处箱子：小人留在原地，标出可达侧与反方向落点
+    enterRemotePushMode(box){
+      var man = this.findManCell();
+      if(!man || !this.cellIsBox(box)) return false;
+      var dirs = [[-1,0],[0,-1],[1,0],[0,1]];
+      var candidates = [];
+      for(var i=0; i<dirs.length; i++){
+        var dl = dirs[i][0], dc = dirs[i][1];
+        var side = this.getCell(box.idxL + dl, box.idxC + dc);
+        if(!side || !(this.cellIsMan(side) || this.manIsLine(man, side))) continue;
+        var targets = [];
+        var l = box.idxL - dl, c = box.idxC - dc;
+        while(true){
+          var cell = this.getCell(l, c);
+          if(!cell) break;
+          // 小人离开后自己的格子也可作为推动落点
+          if(!this.cellIsEmpty(cell) && !this.cellIsMan(cell)) break;
+          targets.push(cell);
+          l -= dl;
+          c -= dc;
+        }
+        if(!targets.length) continue;
+        candidates.push({ side:side, targets:targets, dirL:-dl, dirC:-dc });
+      }
+      if(!candidates.length) return false;
+      this.exitPushMode();
+      var allTargets = [];
+      candidates.forEach(function(c){ allTargets = allTargets.concat(c.targets); });
+      this.pushMode = {
+        remote:true,
+        boxL:box.idxL, boxC:box.idxC,
+        candidates:candidates,
+        targets:allTargets
+      };
+      var self = this;
+      candidates.forEach(function(c){
+        c.targets.forEach(function(t){
+          var el = self.cellEls[t.idxL] && self.cellEls[t.idxL][t.idxC];
+          if(el) el.classList.add('push-target');
+        });
+        var sideEl = self.cellEls[c.side.idxL] && self.cellEls[c.side.idxL][c.side.idxC];
+        if(sideEl){
+          var ghost = document.createElement('div');
+          ghost.className = 'remote-ghost';
+          sideEl.appendChild(ghost);
+          c.ghostEl = ghost;
+        }
+      });
+      return true;
+    },
+
+    async performRemotePush(mode, candidate, target){
+      var box = this.getCell(mode.boxL, mode.boxC);
+      if(!box) return;
+      this.exitPushMode();
+      var man = this.findManCell();
+      if(!man) return;
+      await this.walkTo(man, candidate.side);
+      this.pushMode = {
+        dirL: candidate.dirL,
+        dirC: candidate.dirC,
+        boxL: box.idxL,
+        boxC: box.idxC,
+        targets: candidate.targets
+      };
+      await this.performPush(target);
     },
 
     recordPushUndo(man, box, target){
@@ -1141,8 +1225,8 @@ body{
       }
       this.animating = false;
       this.commitPush(man, box, target);
-      // 推动完成后保持在推箱子状态，以箱子新位置继续显示落点与方向
-      if(!this.gameOver) this.enterPushMode(this.findManCell(), target);
+      // 推动完成后重新执行远处箱子逻辑，展示所有可达方向的绿色通道
+      if(!this.gameOver) this.enterRemotePushMode(target);
     },
 
     // 推动指定箱子一格，并以新位置继续保持在推箱子状态
@@ -1157,7 +1241,9 @@ body{
       this.createTimerIfNone();
       await this.animatePush(man, box, pushTo);
       this.commitPush(man, box, pushTo);
-      if(!this.gameOver) this.enterPushMode(this.findManCell(), pushTo);
+      if(!this.gameOver){
+        this.enterRemotePushMode(pushTo);
+      }
       return true;
     },
 
@@ -1313,23 +1399,51 @@ body{
 
       if(this.pushMode){
         var mode = this.pushMode;
-        // 绿色落点：推动到该格并保持推箱子状态
-        if(mode.targets.indexOf(cell) >= 0){
-          await this.performPush(cell);
-          return;
-        }
-        // 当前状态对应的箱子：再推一格，保持推箱子状态
-        if(cell.idxL === mode.boxL && cell.idxC === mode.boxC){
+        if(mode.remote){
+          var cand = null, remoteTarget = null;
+          // 绿色落点优先：同一格可能既是某方向落点，又是另一方向的侧位
+          for(var ci=0; ci<mode.candidates.length && !cand; ci++){
+            if(mode.candidates[ci].targets.indexOf(cell) >= 0){
+              cand = mode.candidates[ci];
+              remoteTarget = cell;
+            }
+          }
+          for(var ci=0; ci<mode.candidates.length && !cand; ci++){
+            if(mode.candidates[ci].side === cell){
+              cand = mode.candidates[ci];
+              remoteTarget = cand.targets[0];
+            }
+          }
+          if(cand){
+            await this.performRemotePush(mode, cand, remoteTarget);
+            return;
+          }
+          if(cell.idxL === mode.boxL && cell.idxC === mode.boxC) return;
           this.exitPushMode();
-          await this.pushOneStep(cell);
-          return;
-        }
-        // 其他箱子：退出当前状态，按普通点击处理（切换到该箱子）
-        this.exitPushMode();
-        if(!this.cellIsBox(cell)){
-          var modeMan = this.findManCell();
-          if(modeMan) await this.walkTo(modeMan, cell);
-          return;
+          if(!this.cellIsBox(cell)){
+            var remoteMan = this.findManCell();
+            if(remoteMan) await this.walkTo(remoteMan, cell);
+            return;
+          }
+        } else {
+          // 绿色落点：推动到该格并保持推箱子状态
+          if(mode.targets.indexOf(cell) >= 0){
+            await this.performPush(cell);
+            return;
+          }
+          // 当前状态对应的箱子：再推一格，保持推箱子状态
+          if(cell.idxL === mode.boxL && cell.idxC === mode.boxC){
+            this.exitPushMode();
+            await this.pushOneStep(cell);
+            return;
+          }
+          // 其他箱子：退出当前状态，按普通点击处理（切换到该箱子）
+          this.exitPushMode();
+          if(!this.cellIsBox(cell)){
+            var modeMan = this.findManCell();
+            if(modeMan) await this.walkTo(modeMan, cell);
+            return;
+          }
         }
       }
 
@@ -1348,7 +1462,7 @@ body{
       if(isAdjacentBox){
         await this.pushOneStep(cell);
       } else if(this.cellIsBox(cell)){
-        await this.moveToNearestBoxSide(man, cell);
+        this.enterRemotePushMode(cell);
       }
     },
 
