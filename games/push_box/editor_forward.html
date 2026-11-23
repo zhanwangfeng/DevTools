@@ -633,14 +633,22 @@ function pAddSteps(n){
   updatePlayHud();
 }
 function pWait(ms){ return new Promise(function(resolve){ setTimeout(resolve,ms); }); }
+function pTransformFor(l,c){
+  return 'translate(calc(var(--cell-size) * '+c+'), calc(var(--cell-size) * '+l+'))';
+}
 async function pAnimateWalk(path){
   var p=state.play;
   if(!path||!path.length) return;
   p.animating=true;
-  for(var i=0;i<path.length;i++){
-    pSetSpritePos(p.manSprite,path[i].idxL,path[i].idxC);
-    await pWait(120);
-  }
+  var el=p.manSprite, man=pFindMan(), frames=[];
+  if(man) frames.push({transform:pTransformFor(man.idxL,man.idxC)});
+  for(var i=0;i<path.length;i++) frames.push({transform:pTransformFor(path[i].idxL,path[i].idxC)});
+  var last=path[path.length-1];
+  if(frames.length<2) frames.push({transform:pTransformFor(last.idxL,last.idxC)});
+  var anim=el.animate(frames,{duration:120*path.length,easing:'linear',fill:'forwards'});
+  try{ await anim.finished; }catch(e){}
+  el.style.transform=pTransformFor(last.idxL,last.idxC);
+  anim.cancel();
   p.animating=false;
 }
 async function pAnimatePush(manCell,boxCell,pushTo){
@@ -747,8 +755,10 @@ function pEnterRemotePushMode(box){
       var el=p.cellEls[t.idxL]&&p.cellEls[t.idxL][t.idxC];
       if(el) el.classList.add('push-target');
     });
+  });
+  candidates.forEach(function(c){
     var sideEl=p.cellEls[c.side.idxL]&&p.cellEls[c.side.idxL][c.side.idxC];
-    if(sideEl){
+    if(sideEl&&!sideEl.classList.contains('push-target')){
       var ghost=document.createElement('div');
       ghost.className='remote-ghost';
       sideEl.appendChild(ghost);
@@ -822,11 +832,19 @@ async function pPerformPush(target){
   p.animating=true;
   var boxEl=p.boxSprites[pCellKey(box.idxL,box.idxC)];
   if(boxEl) boxEl.className='sprite '+(target.type===4?'sprite-box-ok':'sprite-box');
+  var manFrames=[{transform:pTransformFor(man.idxL,man.idxC)}];
+  var boxFrames=[{transform:pTransformFor(box.idxL,box.idxC)}];
   for(var i=1;i<=steps;i++){
-    pSetSpritePos(p.manSprite,box.idxL+mode.dirL*(i-1),box.idxC+mode.dirC*(i-1));
-    if(boxEl) pSetSpritePos(boxEl,box.idxL+mode.dirL*i,box.idxC+mode.dirC*i);
-    await pWait(120);
+    manFrames.push({transform:pTransformFor(box.idxL+mode.dirL*(i-1),box.idxC+mode.dirC*(i-1))});
+    boxFrames.push({transform:pTransformFor(box.idxL+mode.dirL*i,box.idxC+mode.dirC*i)});
   }
+  var opts={duration:120*steps,easing:'linear',fill:'forwards'};
+  var anims=[p.manSprite.animate(manFrames,opts)];
+  if(boxEl) anims.push(boxEl.animate(boxFrames,opts));
+  try{ await Promise.all(anims.map(function(a){return a.finished;})); }catch(e){}
+  p.manSprite.style.transform=manFrames[manFrames.length-1].transform;
+  if(boxEl) boxEl.style.transform=boxFrames[boxFrames.length-1].transform;
+  anims.forEach(function(a){a.cancel();});
   p.animating=false;
   pCommitPush(man,box,target);
   pAddSteps(steps);

@@ -995,13 +995,30 @@ body{
       return new Promise(function(resolve){ setTimeout(resolve, ms); });
     },
 
+    transformFor(l, c){
+      return 'translate(calc(var(--cell-size) * ' + c + '), calc(var(--cell-size) * ' + l + '))';
+    },
+
     async animateWalk(path){
       if(!path || !path.length) return;
       this.animating = true;
+      var el = this.manSprite;
+      var man = this.findManCell();
+      var frames = [];
+      if(man) frames.push({ transform: this.transformFor(man.idxL, man.idxC) });
       for(var i=0; i<path.length; i++){
-        this.setSpritePos(this.manSprite, path[i].idxL, path[i].idxC);
-        await this.wait(this.moveDuration);
+        frames.push({ transform: this.transformFor(path[i].idxL, path[i].idxC) });
       }
+      var last = path[path.length-1];
+      if(frames.length < 2) frames.push({ transform: this.transformFor(last.idxL, last.idxC) });
+      var anim = el.animate(frames, {
+        duration: this.moveDuration * path.length,
+        easing: 'linear',
+        fill: 'forwards'
+      });
+      try { await anim.finished; } catch(e){}
+      el.style.transform = this.transformFor(last.idxL, last.idxC);
+      anim.cancel();
       this.animating = false;
     },
 
@@ -1140,8 +1157,10 @@ body{
           var el = self.cellEls[t.idxL] && self.cellEls[t.idxL][t.idxC];
           if(el) el.classList.add('push-target');
         });
+      });
+      candidates.forEach(function(c){
         var sideEl = self.cellEls[c.side.idxL] && self.cellEls[c.side.idxL][c.side.idxC];
-        if(sideEl){
+        if(sideEl && !sideEl.classList.contains('push-target')){
           var ghost = document.createElement('div');
           ghost.className = 'remote-ghost';
           sideEl.appendChild(ghost);
@@ -1250,11 +1269,19 @@ body{
       if(boxEl){
         boxEl.className = 'sprite ' + (target.type === 4 ? 'sprite-box-ok' : 'sprite-box');
       }
+      var manFrames = [{ transform: this.transformFor(man.idxL, man.idxC) }];
+      var boxFrames = [{ transform: this.transformFor(box.idxL, box.idxC) }];
       for(var i=1; i<=steps; i++){
-        this.setSpritePos(this.manSprite, box.idxL + mode.dirL * (i-1), box.idxC + mode.dirC * (i-1));
-        if(boxEl) this.setSpritePos(boxEl, box.idxL + mode.dirL * i, box.idxC + mode.dirC * i);
-        await this.wait(this.moveDuration);
+        manFrames.push({ transform: this.transformFor(box.idxL + mode.dirL * (i-1), box.idxC + mode.dirC * (i-1)) });
+        boxFrames.push({ transform: this.transformFor(box.idxL + mode.dirL * i, box.idxC + mode.dirC * i) });
       }
+      var opts = { duration: this.moveDuration * steps, easing: 'linear', fill: 'forwards' };
+      var anims = [ this.manSprite.animate(manFrames, opts) ];
+      if(boxEl) anims.push(boxEl.animate(boxFrames, opts));
+      try { await Promise.all(anims.map(function(a){ return a.finished; })); } catch(e){}
+      this.manSprite.style.transform = manFrames[manFrames.length-1].transform;
+      if(boxEl){ boxEl.style.transform = boxFrames[boxFrames.length-1].transform; }
+      anims.forEach(function(a){ a.cancel(); });
       this.animating = false;
       this.commitPush(man, box, target);
       // 推动完成后重新执行远处箱子逻辑，展示所有可达方向的绿色通道
