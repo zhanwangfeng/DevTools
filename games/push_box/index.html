@@ -19,7 +19,16 @@
 </script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0;font-family:system-ui, sans-serif;}
-:root{--cell-size:40px;}
+:root{
+  --cell-size:40px;
+  --res-dir:res;
+  --img-man:var(--img-man);
+  --img-box:var(--img-box);
+  --img-box-ok:var(--img-box-ok);
+  --img-ground:var(--img-ground);
+  --img-wall:var(--img-wall);
+  --img-target:var(--img-target);
+}
 body{
   background:#000;
   color:#fff;
@@ -247,14 +256,14 @@ body{
   transition:none;
 }
 .push-box-game .sprite-man{
-  background-image:url(res/push_box_man.png);
+  background-image:var(--img-man);
   z-index:6;
 }
 .push-box-game .sprite-box{
-  background-image:url(res/push_box_box.png);
+  background-image:var(--img-box);
 }
 .push-box-game .sprite-box-ok{
-  background-image:url(res/push_box_box_ok.png);
+  background-image:var(--img-box-ok);
 }
 /* 推箱子状态：箱子上的方向箭头 */
 .push-box-game .sprite.pushing::after{
@@ -356,7 +365,7 @@ body{
   z-index:4;
   pointer-events:none;
   opacity:0.25;
-  background-image:url(res/push_box_man.png);
+  background-image:var(--img-man);
   background-size:var(--cell-size) var(--cell-size);
   background-repeat:no-repeat;
 }
@@ -415,31 +424,31 @@ body{
   100%{ opacity:0; transform:translate(var(--dx),var(--dy)) scale(0.2); }
 }
 .push-box-game .cell_box{
-  background:url(res/push_box_box.png);
+  background:var(--img-box);
   background-size:var(--cell-size) var(--cell-size);
   box-shadow:0 0 8px rgba(255,200,0,0.4);
 }
 .push-box-game .cell_box_tar{
-  background:url(res/push_box_box_ok.png);
+  background:var(--img-box-ok);
   background-size:var(--cell-size) var(--cell-size);
   box-shadow:0 0 8px rgba(0,255,100,0.5);
 }
 .push-box-game .cell_ground{
-  background:url(res/push_box_ground.png);
+  background:var(--img-ground);
   background-size:var(--cell-size) var(--cell-size);
 }
 .push-box-game .cell_wall{
-  background:url(res/push_box_wall.png);
+  background:var(--img-wall);
   background-size:var(--cell-size) var(--cell-size);
   box-shadow:0 0 6px rgba(255,255,255,0.08);
 }
 .push-box-game .cell_man{
-  background:url(res/push_box_man.png);
+  background:var(--img-man);
   background-size:var(--cell-size) var(--cell-size);
   box-shadow:0 0 10px rgba(100,200,255,0.5);
 }
 .push-box-game .cell_target{
-  background:url(res/push_box_target.png);
+  background:var(--img-target);
   background-size:var(--cell-size) var(--cell-size);
   box-shadow:0 0 8px rgba(255,100,100,0.3);
 }
@@ -496,6 +505,7 @@ body{
               <span class="game-tag-btn" id="btnReset">重置</span>
               <span class="game-tag-btn sound-btn" id="btnSfx">🔊</span>
               <span class="game-tag-btn" id="btnUndo">↩</span>
+              <span class="game-tag-btn" id="btnSkin">素材:原始</span>
             </div>
             <div class="game-tag-right">
               <span class="panel-label">用时</span>
@@ -610,6 +620,15 @@ body{
     curLevel: 1,
     maxLevel: 90,
     mode: 'standard',          // standard 标准 / custom 我的 / player 玩家上传
+    skins: [
+      {name:'原始', dir:'res'},
+      {name:'立体', dir:'res_dimension'},
+      {name:'太空', dir:'res_space'},
+      {name:'像素', dir:'res_retro'},
+      {name:'水墨', dir:'res_ink'},
+      {name:'冰雪', dir:'res_ice'}
+    ],
+    skinIndex: 0,
     customLevels: [],
     playerLevels: [],
     levelCache: {},
@@ -627,10 +646,28 @@ body{
 
     async init(){
       this.bindEvents();
+      this.applySkin(this.skinIndex);
       this.loadCustomLevels();
       this.updateModeBtn();
       this.updateUndoBtn();
       await this.loadLevel(1);
+    },
+
+    applySkin(idx){
+      this.skinIndex=(idx+this.skins.length)%this.skins.length;
+      var skin=this.skins[this.skinIndex];
+      var root=document.documentElement;
+      root.style.setProperty('--img-man','url('+skin.dir+'/push_box_man.png)');
+      root.style.setProperty('--img-box','url('+skin.dir+'/push_box_box.png)');
+      root.style.setProperty('--img-box-ok','url('+skin.dir+'/push_box_box_ok.png)');
+      root.style.setProperty('--img-ground','url('+skin.dir+'/push_box_ground.png)');
+      root.style.setProperty('--img-wall','url('+skin.dir+'/push_box_wall.png)');
+      root.style.setProperty('--img-target','url('+skin.dir+'/push_box_target.png)');
+      document.getElementById('btnSkin').textContent='素材:'+skin.name;
+    },
+
+    switchSkin(){
+      this.applySkin(this.skinIndex+1);
     },
 
     bindEvents(){
@@ -656,6 +693,10 @@ body{
       document.getElementById('customEmptyMask').onclick = () => {
         Sound.click();
         this.switchToNextMode();
+      };
+      document.getElementById('btnSkin').onclick = () => {
+        Sound.click();
+        this.switchSkin();
       };
       document.getElementById('btnPrev').onclick = () => {
         if(this.disabled) return;

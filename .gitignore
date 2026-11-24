@@ -60,3 +60,17 @@ yarn-error.log*
 
 # Local plans (not tracked)
 docs/plans/
+
+# 浏览器自动化测试产物
+.playwright-cli/
+
+# 推箱子临时预览/生成脚本
+games/push_box/_*.html
+games/push_box/_*.py
+
+# 推箱子玩家上传关卡运行期数据（保留目录结构）
+games/push_box/push_box_use_levels/levels/screen.*
+games/push_box/push_box_use_levels/results/screen.*
+
+# 站点导出快照
+mx2.yaml
