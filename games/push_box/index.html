@@ -309,20 +309,19 @@ body{
   color:#b8d8ff;
   opacity:0.7;
 }
-/* 自定义关卡为空提示弹框 */
+/* 地图区域为空提示层：覆盖地图，点击可切换到下一个模式 */
 .push-box-game .custom-empty-mask{
-  position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:50;
+  position:absolute;inset:0;background:rgba(0,0,0,0.82);z-index:25;
   display:none;align-items:center;justify-content:center;padding:16px;
+  cursor:pointer;user-select:none;
 }
 .push-box-game .custom-empty-mask.show{ display:flex; }
 .push-box-game .custom-empty-panel{
-  background:#111a28;border:1px solid rgba(124,204,255,.35);border-radius:12px;
-  padding:22px;max-width:340px;width:100%;text-align:center;
-  box-shadow:0 10px 40px rgba(0,0,0,.6);
+  max-width:340px;width:100%;text-align:center;pointer-events:none;
 }
 .push-box-game .custom-empty-panel .ce-title{font-size:18px;color:#7cf;margin-bottom:10px;font-weight:bold;}
-.push-box-game .custom-empty-panel .ce-hint{font-size:13px;color:#9ab;line-height:1.7;margin-bottom:18px;}
-.push-box-game .custom-empty-panel .ce-actions{display:flex;gap:10px;justify-content:center;}
+.push-box-game .custom-empty-panel .ce-hint{font-size:13px;color:#9ab;line-height:1.7;margin-bottom:14px;}
+.push-box-game .custom-empty-panel .ce-next{font-size:12px;color:#7cf8c0;opacity:.85;}
 /* 格子样式 */
 .push-box-game .mine-canvas > div{
   display:flex;
@@ -511,12 +510,9 @@ body{
             </div>
             <div class="custom-empty-mask" id="customEmptyMask">
               <div class="custom-empty-panel">
-                <div class="ce-title">暂无自定义关卡</div>
+                <div class="ce-title">暂无关卡</div>
                 <div class="ce-hint">请先使用关卡编辑器创建并保存一个关卡，之后即可在此切换游玩。</div>
-                <div class="ce-actions">
-                  <span class="game-tag-btn" id="btnCustomEmptyClose">关闭</span>
-                  <span class="game-tag-btn mode-btn" id="btnCustomEmptyCreate">创建</span>
-                </div>
+                <div class="ce-next">点击此处或切换模式继续</div>
               </div>
             </div>
           </div>
@@ -613,8 +609,9 @@ body{
     leftBox: 0,
     curLevel: 1,
     maxLevel: 90,
-    mode: 'standard',
+    mode: 'standard',          // standard 标准 / custom 我的 / player 玩家上传
     customLevels: [],
+    playerLevels: [],
     levelCache: {},
     timerId: null,
     downloading: false,
@@ -650,19 +647,15 @@ body{
       document.getElementById('btnMode').onclick = () => {
         if(this.disabled) return;
         Sound.click();
-        this.setMode(this.mode === 'standard' ? 'custom' : 'standard');
+        this.switchToNextMode();
       };
       document.getElementById('btnMakeLevel').onclick = () => {
         Sound.click();
         window.location.href = 'editor_forward.html';
       };
-      document.getElementById('btnCustomEmptyClose').onclick = () => {
+      document.getElementById('customEmptyMask').onclick = () => {
         Sound.click();
-        document.getElementById('customEmptyMask').classList.remove('show');
-      };
-      document.getElementById('btnCustomEmptyCreate').onclick = () => {
-        Sound.click();
-        window.location.href = 'editor_forward.html';
+        this.switchToNextMode();
       };
       document.getElementById('btnPrev').onclick = () => {
         if(this.disabled) return;
@@ -767,9 +760,9 @@ body{
     },
 
     updateModeBtn(){
-      var isCustom = this.mode === 'custom';
-      document.getElementById('btnMode').textContent = isCustom ? '自定义' : '标准';
-      document.getElementById('btnMakeLevel').style.display = isCustom ? 'inline-block' : 'none';
+      var label = this.mode === 'standard' ? '标准' : (this.mode === 'custom' ? '我的' : '玩家上传');
+      document.getElementById('btnMode').textContent = label;
+      document.getElementById('btnMakeLevel').style.display = this.mode === 'custom' ? 'inline-block' : 'none';
     },
 
     async setMode(mode){
@@ -777,18 +770,62 @@ body{
       if(mode === 'custom'){
         this.loadCustomLevels();
         if(!this.customLevels.length){
-          document.getElementById('customEmptyMask').classList.add('show');
+          this.mode = mode;
+          this.maxLevel = 0;
+          this.updateModeBtn();
+          this.showCustomEmpty('暂无我的关卡', '请先用关卡编辑器创建并保存一个关卡，之后即可在此切换游玩。');
           return;
         }
       }
+      if(mode === 'player'){
+        var ok = await this.loadPlayerLevels();
+        if(!ok){
+          this.mode = mode;
+          this.maxLevel = 0;
+          this.updateModeBtn();
+          return;
+        }
+      }
+      document.getElementById('customEmptyMask').classList.remove('show');
       this.mode = mode;
-      this.maxLevel = mode === 'standard' ? 90 : this.customLevels.length;
+      this.maxLevel = mode === 'standard' ? 90
+        : (mode === 'custom' ? this.customLevels.length : this.playerLevels.length);
       this.curLevel = 1;
       this.updateModeBtn();
       await this.loadLevel(1);
     },
 
+    showCustomEmpty(title, hint){
+      document.querySelector('#customEmptyMask .ce-title').textContent = title;
+      document.querySelector('#customEmptyMask .ce-hint').textContent = hint;
+      document.getElementById('customEmptyMask').classList.add('show');
+    },
+
+    switchToNextMode(){
+      var order = ['standard', 'custom', 'player'];
+      var next = order[(order.indexOf(this.mode) + 1) % order.length];
+      this.setMode(next);
+    },
+
+    async loadPlayerLevels(){
+      this.playerLevels = [];
+      try{
+        var resp = await fetch('push_box_use_levels/list.json');
+        if(!resp.ok) throw new Error('list.json ' + resp.status);
+        var list = await resp.json();
+        this.playerLevels = (list && Array.isArray(list.levels)) ? list.levels : [];
+      }catch(e){
+        console.error('加载玩家关卡列表失败:', e);
+      }
+      if(!this.playerLevels.length){
+        this.showCustomEmpty('暂无玩家关卡', '玩家上传的关卡为空，请稍后再试。');
+        return false;
+      }
+      return true;
+    },
+
     async goLevel(step){
+      if(!this.maxLevel) return;
       var n = this.curLevel + step;
       if(n < 1) n = this.maxLevel;
       if(n > this.maxLevel) n = 1;
@@ -822,9 +859,13 @@ body{
           }
           this.levelCache[cacheKey] = parsed;
         } else {
+          var file = this.mode === 'player'
+            ? 'push_box_use_levels/levels/' + (this.playerLevels[num - 1].file || ('screen.' + num))
+            : 'levels/screen.' + num;
           this.downloading = true;
           try {
-            var resp = await fetch('levels/screen.' + num);
+            var resp = await fetch(file);
+            if(!resp.ok) throw new Error('HTTP ' + resp.status);
             var text = await resp.text();
             this.levelCache[cacheKey] = this.parseLevel(text);
           } catch(e){

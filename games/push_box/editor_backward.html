@@ -237,6 +237,7 @@ input[type=number]{width:70px;}
       <button class="btn" id="detailClose">关闭</button>
       <button class="btn danger" id="detailDelete">删除</button>
       <button class="btn" id="detailDownload">下载</button>
+      <button class="btn" id="detailUpload">上传</button>
       <button class="btn primary" id="detailLoad">加载</button>
     </div>
   </div>
@@ -493,6 +494,8 @@ function openOfficialDetail(rec, isDraft){
         '关卡编号：'+(rec.fileNo||1));
   var downBtn=document.getElementById('detailDownload');
   if(downBtn) downBtn.style.display=isDraft?'none':'';
+  var upBtn=document.getElementById('detailUpload');
+  if(upBtn) upBtn.style.display=isDraft?'none':'';
   var box=document.getElementById('detailPreview');
   box.innerHTML='';
   var canvas=makePreview(rec.grid).querySelector('canvas');
@@ -617,10 +620,13 @@ function pSyncSprites(noAnim){
     }
   }
 }
-function pAddSteps(n){
+function pAddSteps(n, dirL, dirC){
   var p=state.play;
   if(!p) return;
   p.steps+=n;
+  // 解题步骤：按每格记录移动方向（U上 D下 L左 R右）
+  var ch=dirC<0?'L':(dirC>0?'R':(dirL<0?'U':'D'));
+  for(var i=0;i<n;i++) p.route.push(ch);
   updatePlayHud();
 }
 function pWait(ms){ return new Promise(function(resolve){ setTimeout(resolve,ms); }); }
@@ -736,7 +742,10 @@ async function pWalkTo(man,cell){
   if(!path||!path.length) return false;
   await pAnimateWalk(path);
   pCommitWalk(man,path[path.length-1]);
-  pAddSteps(path.length);
+  for(var i=0;i<path.length;i++){
+    var prev=i===0?man:path[i-1], cur=path[i];
+    pAddSteps(1,cur.idxL-prev.idxL,cur.idxC-prev.idxC);
+  }
   return true;
 }
 function pRecordPullUndo(man,box,target,steps,dirL,dirC){
@@ -808,7 +817,7 @@ async function pPerformRemotePull(mode,candidate,target){
   anims.forEach(function(a){a.cancel();});
   p.animating=false;
   pCommitPull(man,box,target,candidate.dirL,candidate.dirC,steps);
-  pAddSteps(steps);
+  pAddSteps(steps,candidate.dirL,candidate.dirC);
   pEnterRemotePullMode(target);
 }
 function pCheckPullState(){
@@ -878,7 +887,7 @@ async function pStepToEmpty(cell){
   if(!man||!pManIsLine(man,cell)) return;
   await pAnimateWalk([cell]);
   pCommitWalk(man,cell);
-  pAddSteps(1);
+  pAddSteps(1,cell.idxL-man.idxL,cell.idxC-man.idxC);
 }
 
 function updatePlayHud(){
@@ -943,7 +952,7 @@ function startPlay(){
   }
   state.play={
     rows:rows,cols:cols,cells:cells,
-    steps:0,offTarget:0,animating:false,pushMode:null,
+    steps:0,route:[],offTarget:0,animating:false,pushMode:null,
     undoStack:[],cellEls:[],spriteLayer:null,manSprite:null,boxSprites:{}
   };
   switchStep(2);
@@ -957,7 +966,7 @@ function resetPlay(){
   for(var i=0;i<p.rows;i++) for(var j=0;j<p.cols;j++){
     p.cells[i][j].type=playCharToType(state.grid[i][j]);
   }
-  p.steps=0;
+  p.steps=0; p.route=[];
   p.animating=false; p.pushMode=null; p.undoStack=[];
   pRefreshAllMovable();
   renderPlayMap();
@@ -984,6 +993,7 @@ async function pUndo(){
   var target=pGetCell(step.targetL,step.targetC);
   man.type=step.manType; box.type=step.boxType; target.type=step.targetType;
   if(p.steps>=step.steps) p.steps-=step.steps;
+  for(var k=0;k<step.steps&&p.route.length;k++) p.route.pop();
   pRefreshAllMovable();
   pCheckPullState();
 }
@@ -1017,6 +1027,26 @@ function downloadLevel(rec){
   document.body.appendChild(a); a.click(); document.body.removeChild(a);
   setTimeout(function(){ URL.revokeObjectURL(a.href); },1000);
 }
+async function uploadOfficial(){
+  var rec=detailCurrentRec;
+  if(!rec||detailIsDraft){ alert('请先上传已保存的正式关卡'); return; }
+  var btn=document.getElementById('detailUpload');
+  var old=btn.textContent; btn.disabled=true; btn.textContent='上传中...';
+  try{
+    var resp=await fetch('upload.php',{
+      method:'POST',
+      headers:{'Content-Type':'application/json;charset=utf-8'},
+      body:JSON.stringify(rec)
+    });
+    var result=await resp.json();
+    if(result.ok){ alert('上传成功：'+result.file); }
+    else{ alert('上传失败：'+(result.message||result.error||'未知错误')); }
+  }catch(e){
+    alert('上传失败：'+e.message);
+  }finally{
+    btn.disabled=false; btn.textContent=old;
+  }
+}
 function saveOfficial(){
   if(!state.play||state.play.offTarget<1){
     document.getElementById('winMask').classList.add('show');
@@ -1036,6 +1066,7 @@ function saveOfficial(){
     grid:pGridToChars(),
     createdAt:Date.now(),
     solvedSteps:state.play.steps,
+    solvedRoute:state.play.route.join(''),
     solvedGrid:clone(state.grid),
     fileNo:maxNo+1
   };
@@ -1079,6 +1110,7 @@ function bind(){
   document.getElementById('detailDownload').onclick=function(){
     if(detailCurrentRec) downloadLevel(detailCurrentRec);
   };
+  document.getElementById('detailUpload').onclick=uploadOfficial;
   document.getElementById('detailDelete').onclick=function(){
     var rec=detailCurrentRec, isDraft=detailIsDraft; if(!rec) return;
     if(!confirm('删除'+(isDraft?'草稿':'正式关卡')+'「'+rec.name+'」？')) return;
