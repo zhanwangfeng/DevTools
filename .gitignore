@@ -68,9 +68,8 @@ docs/plans/
 games/push_box/_*.html
 games/push_box/_*.py
 
-# 推箱子玩家上传关卡运行期数据（保留目录结构）
-games/push_box/push_box_use_levels/levels/screen.*
-games/push_box/push_box_use_levels/results/screen.*
+# 推箱子玩家上传关卡数据（运行期生成，不提交）
+games/push_box/push_box_use_levels/
 
 # 站点导出快照
 mx2.yaml
