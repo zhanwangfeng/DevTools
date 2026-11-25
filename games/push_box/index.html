@@ -256,6 +256,7 @@ body{
   background-repeat:no-repeat;
   will-change:transform;
   transition:transform 120ms ease-in-out;
+  filter:drop-shadow(2px 3px 2px rgba(0,0,0,0.45));
 }
 .push-box-game .sprite.no-anim{
   transition:none;
@@ -263,6 +264,11 @@ body{
 .push-box-game .sprite-man{
   background-image:var(--img-man);
   z-index:6;
+}
+.push-box-game .sprite-box,
+.push-box-game .sprite-box-ok{
+  filter:drop-shadow(3px 4px 3px rgba(0,0,0,0.55));
+  box-shadow:inset 2px 2px 0 rgba(255,255,255,0.28), inset -3px -3px 0 rgba(0,0,0,0.35), 2px 3px 4px rgba(0,0,0,0.55);
 }
 .push-box-game .sprite-box{
   background-image:var(--img-box);
@@ -304,6 +310,35 @@ body{
   height:100%;
   pointer-events:none;
   z-index:10;
+}
+/* 晴天：仅在通用阴影之上增加受光提亮，其他天气无阳光 */
+.weather-clear .push-box-game .sprite{
+  filter:drop-shadow(2px 3px 2px rgba(0,0,0,0.45)) brightness(1.08) contrast(1.05);
+}
+.weather-clear .push-box-game .sprite-box,
+.weather-clear .push-box-game .sprite-box-ok{
+  filter:drop-shadow(3px 4px 3px rgba(0,0,0,0.55)) brightness(1.1) contrast(1.08);
+}
+.weather-clear .push-box-game .sprite-man,
+.weather-clear .push-box-game .sprite-box,
+.weather-clear .push-box-game .sprite-box-ok{
+  background-blend-mode:overlay, normal;
+}
+.weather-clear .push-box-game .sprite-man{
+  background-image:linear-gradient(135deg, rgba(255,250,200,0.38), rgba(0,0,0,0.28)), var(--img-man);
+}
+.weather-clear .push-box-game .sprite-box{
+  background-image:linear-gradient(135deg, rgba(255,250,200,0.48), rgba(0,0,0,0.4)), var(--img-box);
+}
+.weather-clear .push-box-game .sprite-box-ok{
+  background-image:linear-gradient(135deg, rgba(255,250,200,0.48), rgba(0,0,0,0.4)), var(--img-box-ok);
+}
+.weather-clear .push-box-game .cell_wall::before{
+  content:"";
+  position:absolute;
+  inset:0;
+  background:linear-gradient(135deg, rgba(255,248,190,0.3), rgba(0,0,0,0.26));
+  pointer-events:none;
 }
 /* 胜利遮罩 */
 .push-box-game .win-overlay{
@@ -450,11 +485,13 @@ body{
 .push-box-game .cell_ground{
   background:var(--img-ground);
   background-size:var(--cell-size) var(--cell-size);
+  box-shadow:inset 2px 2px 0 rgba(255,255,255,0.16), inset -3px -3px 0 rgba(0,0,0,0.2);
 }
 .push-box-game .cell_wall{
   background:var(--img-wall);
   background-size:var(--cell-size) var(--cell-size);
-  box-shadow:0 0 6px rgba(255,255,255,0.08);
+  z-index:7;
+  box-shadow:inset 2px 2px 0 rgba(255,255,255,0.24), inset -3px -3px 0 rgba(0,0,0,0.3), 2px 3px 5px rgba(0,0,0,0.6);
 }
 .push-box-game .cell_man{
   background:var(--img-man);
@@ -464,7 +501,7 @@ body{
 .push-box-game .cell_target{
   background:var(--img-target);
   background-size:var(--cell-size) var(--cell-size);
-  box-shadow:0 0 8px rgba(255,100,100,0.3);
+  box-shadow:inset 2px 2px 0 rgba(255,255,255,0.16), inset -3px -3px 0 rgba(0,0,0,0.2), 0 0 8px rgba(255,100,100,0.3);
 }
 .push-box-game .mr5{
   margin-right:5px;
@@ -633,6 +670,13 @@ body{
       if(found >= 0) idx = found;
     }catch(e){}
 
+    function applyClass(){
+      var root = document.documentElement;
+      for(var i=0; i<types.length; i++) root.classList.remove('weather-' + types[i].key);
+      root.classList.add('weather-' + types[idx].key);
+    }
+    applyClass();
+
     function isSavedValid(){
       var saved = null;
       try{ saved = localStorage.getItem(LS); }catch(e){ return true; }
@@ -643,6 +687,7 @@ body{
 
     function resetToClear(){
       idx = types.length - 1;
+      applyClass();
       try{ localStorage.setItem(LS, types[idx].key); }catch(e){}
     }
 
@@ -794,6 +839,45 @@ body{
       }
     }
 
+    function drawSun(dt, ts){
+      var reach = Math.max(width, height) * 1.4;
+      ctx.fillStyle = 'rgba(70,55,30,0.18)';
+      ctx.fillRect(0, 0, width, height);
+      var glow = ctx.createRadialGradient(-width * 0.12, -height * 0.18, 0, -width * 0.12, -height * 0.18, reach);
+      glow.addColorStop(0, 'rgba(255,248,205,0.34)');
+      glow.addColorStop(0.5, 'rgba(255,244,190,0.12)');
+      glow.addColorStop(1, 'rgba(255,240,180,0)');
+      ctx.fillStyle = glow;
+      ctx.fillRect(0, 0, width, height);
+
+      ctx.save();
+      ctx.translate(-width * 0.12, -height * 0.2);
+      ctx.rotate(Math.PI / 4);
+      var span = Math.max(width, height) * 2.6;
+      var gap = span / 7;
+      for(var i=0; i<7; i++){
+        var y = (ts * 0.006 + i * gap) % (span * 2) - span;
+        var bw = 22 + (i % 3) * 12;
+        var pulse = 0.5 + 0.5 * Math.sin(ts * 0.0008 + i);
+        var cut = ctx.createLinearGradient(0, y - bw, 0, y + bw);
+        cut.addColorStop(0, 'rgba(0,0,0,0)');
+        cut.addColorStop(0.5, 'rgba(0,0,0,' + (0.65 + 0.25 * pulse) + ')');
+        cut.addColorStop(1, 'rgba(0,0,0,0)');
+        ctx.globalCompositeOperation = 'destination-out';
+        ctx.fillStyle = cut;
+        ctx.fillRect(-span, y - bw, span * 2, bw * 2);
+
+        var g = ctx.createLinearGradient(0, y - bw, 0, y + bw);
+        g.addColorStop(0, 'rgba(255,248,205,0)');
+        g.addColorStop(0.5, 'rgba(255,252,225,' + (0.12 + 0.16 * pulse) + ')');
+        g.addColorStop(1, 'rgba(255,248,205,0)');
+        ctx.globalCompositeOperation = 'lighter';
+        ctx.fillStyle = g;
+        ctx.fillRect(-span, y - bw, span * 2, bw * 2);
+      }
+      ctx.restore();
+    }
+
     function frame(ts){
       raf = requestAnimationFrame(frame);
       if(!ctx || !width || !height) return;
@@ -805,6 +889,7 @@ body{
       if(key === 'rain') drawRain(dt, ts);
       else if(key === 'snow') drawSnow(dt);
       else if(key === 'fog') drawFog(dt, ts);
+      else if(key === 'clear') drawSun(dt, ts);
     }
 
     function start(){ if(!raf){ lastTs = 0; raf = requestAnimationFrame(frame); } }
@@ -827,6 +912,7 @@ body{
       resetToClear: resetToClear,
       next: function(){
         idx = (idx + 1) % types.length;
+        applyClass();
         try{ localStorage.setItem(LS, types[idx].key); }catch(e){}
         initParticles();
         return types[idx];
