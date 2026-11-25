@@ -636,11 +636,106 @@ body{
       osc.start(t0);
       osc.stop(t0 + dur + 0.02);
     }
+
+    var rainNode = null, rainGain = null, weatherKey = 'clear';
+
+    function noiseBuffer(c, seconds){
+      var len = Math.floor(c.sampleRate * (seconds || 2));
+      var buf = c.createBuffer(1, len, c.sampleRate);
+      var data = buf.getChannelData(0);
+      for(var i=0; i<len; i++) data[i] = Math.random() * 2 - 1;
+      return buf;
+    }
+
+    function startRain(){
+      if(rainNode || !sfxOn || weatherKey !== 'rain' || !ctx) return;
+      var c = ctx;
+      var src = c.createBufferSource();
+      src.buffer = noiseBuffer(c, 2);
+      src.loop = true;
+      var hp = c.createBiquadFilter();
+      hp.type = 'highpass';
+      hp.frequency.value = 350;
+      var lp = c.createBiquadFilter();
+      lp.type = 'lowpass';
+      lp.frequency.value = 4500;
+      var gain = c.createGain();
+      gain.gain.setValueAtTime(0.0001, c.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.1, c.currentTime + 0.5);
+      src.connect(hp).connect(lp).connect(gain).connect(c.destination);
+      src.start();
+      rainNode = src;
+      rainGain = gain;
+    }
+
+    function stopRain(){
+      if(!rainNode) return;
+      var c = ctx, node = rainNode, gain = rainGain;
+      rainNode = null;
+      rainGain = null;
+      if(!c || !gain) return;
+      try{
+        gain.gain.cancelScheduledValues(c.currentTime);
+        gain.gain.setValueAtTime(Math.max(gain.gain.value, 0.0001), c.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.0001, c.currentTime + 0.2);
+        node.stop(c.currentTime + 0.25);
+        node.onended = function(){ try{ node.disconnect(); }catch(e){} };
+      }catch(e){}
+    }
+
+    function setWeather(key){
+      weatherKey = key || 'clear';
+      if(weatherKey === 'rain') startRain();
+      else stopRain();
+    }
+
+    function thunder(){
+      var c = ensure();
+      if(!c || !sfxOn) return;
+      var t0 = c.currentTime;
+      var rumble = c.createBufferSource();
+      rumble.buffer = noiseBuffer(c, 2);
+      rumble.loop = true;
+      var lp = c.createBiquadFilter();
+      lp.type = 'lowpass';
+      lp.frequency.setValueAtTime(260, t0);
+      lp.frequency.exponentialRampToValueAtTime(70, t0 + 1.3);
+      var rg = c.createGain();
+      rg.gain.setValueAtTime(0.0001, t0);
+      rg.gain.exponentialRampToValueAtTime(0.22, t0 + 0.08);
+      rg.gain.exponentialRampToValueAtTime(0.0001, t0 + 1.4);
+      rumble.connect(lp).connect(rg).connect(c.destination);
+      rumble.start(t0);
+      rumble.stop(t0 + 1.5);
+      rumble.onended = function(){ try{ rumble.disconnect(); }catch(e){} };
+
+      var crack = c.createBufferSource();
+      crack.buffer = noiseBuffer(c, 0.5);
+      var hp = c.createBiquadFilter();
+      hp.type = 'highpass';
+      hp.frequency.value = 900;
+      var cg = c.createGain();
+      cg.gain.setValueAtTime(0.16, t0);
+      cg.gain.exponentialRampToValueAtTime(0.0001, t0 + 0.22);
+      crack.connect(hp).connect(cg).connect(c.destination);
+      crack.start(t0);
+      crack.stop(t0 + 0.25);
+      crack.onended = function(){ try{ crack.disconnect(); }catch(e){} };
+    }
+
     return {
-      unlock: ensure,
+      unlock: function(){
+        var c = ensure();
+        if(weatherKey === 'rain') startRain();
+        return c;
+      },
+      setWeather: setWeather,
+      thunder: thunder,
       setSfx: function(on){
         sfxOn = !!on;
         localStorage.setItem(LS, sfxOn ? 'true' : 'false');
+        if(sfxOn && weatherKey === 'rain') startRain();
+        else if(!sfxOn) stopRain();
         return sfxOn;
       },
       isSfxOn: function(){ return sfxOn; },
@@ -674,6 +769,7 @@ body{
       var root = document.documentElement;
       for(var i=0; i<types.length; i++) root.classList.remove('weather-' + types[i].key);
       root.classList.add('weather-' + types[idx].key);
+      Sound.setWeather(types[idx].key);
     }
     applyClass();
 
@@ -765,6 +861,7 @@ body{
       if(ts > nextFlash){
         flash = rand(0.5, 0.9);
         nextFlash = ts + rand(6000, 14000);
+        Sound.thunder();
       }
       ctx.lineWidth = 1.2;
       for(var i=0; i<drops.length; i++){
@@ -896,8 +993,13 @@ body{
     function stop(){ if(raf){ cancelAnimationFrame(raf); raf = 0; } }
 
     document.addEventListener('visibilitychange', function(){
-      if(document.hidden) stop();
-      else start();
+      if(document.hidden){
+        stop();
+        Sound.setWeather('none');
+      } else {
+        start();
+        Sound.setWeather(types[idx].key);
+      }
     });
 
     return {
