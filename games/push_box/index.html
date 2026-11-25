@@ -193,6 +193,11 @@ body{
   cursor:not-allowed;
   pointer-events:none;
 }
+/* 天气按钮（带图标） */
+.push-box-game .game-tag-btn.weather-btn{
+  color:#9dd8ff;
+  border-color:rgba(124,204,255,0.4);
+}
 .push-box-game .game-tag-level{
   color:#7cf;
   font-size:22px;
@@ -290,6 +295,15 @@ body{
   position:relative;
   display:inline-block;
   max-width:100%;
+}
+/* 天气特效层：覆盖地图但不影响点击操作 */
+.push-box-game .weather-canvas{
+  position:absolute;
+  inset:0;
+  width:100%;
+  height:100%;
+  pointer-events:none;
+  z-index:10;
 }
 /* 胜利遮罩 */
 .push-box-game .win-overlay{
@@ -506,6 +520,7 @@ body{
               <span class="game-tag-btn sound-btn" id="btnSfx">🔊</span>
               <span class="game-tag-btn" id="btnUndo">↩</span>
               <span class="game-tag-btn" id="btnSkin">素材:原始</span>
+              <span class="game-tag-btn weather-btn" id="btnWeather">☂ 雨天</span>
             </div>
             <div class="game-tag-right">
               <span class="panel-label">用时</span>
@@ -514,6 +529,7 @@ body{
           </div>
           <div class="mine-canvas-wrap">
             <div class="mine-canvas" id="mineCanvas"></div>
+            <canvas class="weather-canvas" id="weatherCanvas"></canvas>
             <div class="win-overlay" id="winOverlay">
               <div class="win-title">恭喜过关</div>
               <div class="win-hint">即将进入下一关</div>
@@ -600,6 +616,225 @@ body{
     };
   })();
 
+  // ========== 天气系统（雨天 / 雪天 / 雾天 / 晴天，默认雨天） ==========
+  const Weather = (function(){
+    var LS = 'push_box.weather';
+    var types = [
+      {key:'rain',  name:'雨天', icon:'☂'},
+      {key:'snow',  name:'雪天', icon:'❄'},
+      {key:'fog',   name:'雾天', icon:'≋'},
+      {key:'clear', name:'晴天', icon:'☀'}
+    ];
+    var idx = 0;
+    try{
+      var saved = localStorage.getItem(LS);
+      var found = -1;
+      for(var i=0; i<types.length; i++){ if(types[i].key === saved){ found = i; break; } }
+      if(found >= 0) idx = found;
+    }catch(e){}
+
+    function isSavedValid(){
+      var saved = null;
+      try{ saved = localStorage.getItem(LS); }catch(e){ return true; }
+      if(saved === null) return true;
+      for(var i=0; i<types.length; i++){ if(types[i].key === saved) return true; }
+      return false;
+    }
+
+    function resetToClear(){
+      idx = types.length - 1;
+      try{ localStorage.setItem(LS, types[idx].key); }catch(e){}
+    }
+
+    var canvas = null, ctx = null, raf = 0, lastTs = 0;
+    var width = 0, height = 0, dpr = 1;
+    var drops = [], flakes = [], splashes = [], fogBanks = [];
+    var flash = 0, nextFlash = 0;
+
+    function rand(a, b){ return a + Math.random() * (b - a); }
+
+    function initParticles(){
+      drops = [];
+      flakes = [];
+      splashes = [];
+      fogBanks = [];
+      var area = width * height;
+      var rainCount = Math.max(30, Math.min(180, Math.round(area / 2600)));
+      for(var i=0; i<rainCount; i++){
+        drops.push({
+          x: rand(0, width), y: rand(-height, height),
+          len: rand(10, 24), speed: rand(280, 520),
+          wind: rand(-45, -15), alpha: rand(0.3, 0.7)
+        });
+      }
+      var snowCount = Math.max(16, Math.min(90, Math.round(area / 6000)));
+      for(var j=0; j<snowCount; j++){
+        flakes.push({
+          x: rand(0, width), y: rand(-height, height),
+          r: rand(1, 2.8), speed: rand(18, 45),
+          drift: rand(-12, 12), phase: rand(0, Math.PI * 2), alpha: rand(0.35, 0.85)
+        });
+      }
+      var bankCount = Math.max(7, Math.min(14, Math.round(area / 18000)));
+      for(var k=0; k<bankCount; k++){
+        var rx = rand(width * 0.18, width * 0.42);
+        fogBanks.push({
+          x: rand(-rx, width + rx),
+          y: height * rand(0.12, 0.88),
+          rx: rx,
+          ry: rand(24, Math.max(40, height * 0.22)),
+          speed: rand(12, 34),
+          phase: rand(0, Math.PI * 2),
+          wavePhase: (k % 3) * (Math.PI * 2 / 3) + rand(-0.4, 0.4),
+          alpha: rand(0.3, 0.52),
+          parts: [
+            {dx:0, dy:0, s:1},
+            {dx:-0.45, dy:0.2, s:0.72},
+            {dx:0.42, dy:-0.18, s:0.66}
+          ]
+        });
+      }
+      nextFlash = 0;
+      lastTs = 0;
+    }
+
+    function resize(){
+      if(!canvas || !ctx) return;
+      var rect = canvas.getBoundingClientRect();
+      width = rect.width;
+      height = rect.height;
+      dpr = Math.min(window.devicePixelRatio || 1, 2);
+      canvas.width = Math.max(1, Math.round(width * dpr));
+      canvas.height = Math.max(1, Math.round(height * dpr));
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      initParticles();
+    }
+
+    function resetDrop(d){ d.x = rand(-20, width + 20); d.y = rand(-60, -10); }
+    function resetFlake(f){ f.x = rand(0, width); f.y = rand(-30, -10); }
+
+    function drawRain(dt, ts){
+      ctx.fillStyle = 'rgba(6,18,38,0.10)';
+      ctx.fillRect(0, 0, width, height);
+      if(!nextFlash) nextFlash = ts + rand(4000, 9000);
+      if(ts > nextFlash){
+        flash = rand(0.5, 0.9);
+        nextFlash = ts + rand(6000, 14000);
+      }
+      ctx.lineWidth = 1.2;
+      for(var i=0; i<drops.length; i++){
+        var d = drops[i];
+        ctx.strokeStyle = 'rgba(180,220,255,' + d.alpha + ')';
+        ctx.beginPath();
+        ctx.moveTo(d.x, d.y);
+        ctx.lineTo(d.x + d.wind * 0.06, d.y + d.len);
+        ctx.stroke();
+        d.x += d.wind * dt;
+        d.y += d.speed * dt;
+        if(d.y > height){
+          if(splashes.length < 60) splashes.push({ x:d.x, y:height - rand(1, 5), r:1, alpha:0.45 });
+          resetDrop(d);
+        }
+        if(d.x < -30 || d.x > width + 30) resetDrop(d);
+      }
+      for(var s=splashes.length - 1; s>=0; s--){
+        var sp = splashes[s];
+        sp.r += 26 * dt;
+        sp.alpha -= 0.9 * dt;
+        if(sp.alpha <= 0){ splashes.splice(s, 1); continue; }
+        ctx.strokeStyle = 'rgba(190,225,255,' + sp.alpha + ')';
+        ctx.beginPath();
+        ctx.ellipse(sp.x, sp.y, sp.r, sp.r * 0.35, 0, 0, Math.PI * 2);
+        ctx.stroke();
+      }
+      if(flash > 0){
+        ctx.fillStyle = 'rgba(220,238,255,' + flash + ')';
+        ctx.fillRect(0, 0, width, height);
+        flash = Math.max(0, flash - dt * 2.4);
+      }
+    }
+
+    function drawSnow(dt){
+      for(var i=0; i<flakes.length; i++){
+        var f = flakes[i];
+        f.phase += dt * 2;
+        f.x += (f.drift + Math.sin(f.phase) * 8) * dt;
+        f.y += f.speed * dt;
+        if(f.y > height || f.x < -10 || f.x > width + 10) resetFlake(f);
+        ctx.fillStyle = 'rgba(255,255,255,' + f.alpha + ')';
+        ctx.beginPath();
+        ctx.arc(f.x, f.y, f.r, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    }
+
+    function drawFog(dt, ts){
+      for(var i=0; i<fogBanks.length; i++){
+        var b = fogBanks[i];
+        b.x += b.speed * dt;
+        if(b.x - b.rx > width + 40) b.x = -b.rx - rand(0, width * 0.4);
+        var wave = Math.max(0, Math.sin(ts * 0.00045 + b.wavePhase));
+        var gust = 0.2 + 0.8 * wave * wave;
+        var alpha = b.alpha * gust;
+        if(alpha < 0.01) continue;
+        var cy = b.y + Math.sin(ts * 0.0006 + b.phase) * 6;
+        for(var p=0; p<b.parts.length; p++){
+          var part = b.parts[p];
+          ctx.save();
+          ctx.translate(b.x + part.dx * b.rx, cy + part.dy * b.ry);
+          ctx.scale(b.rx * part.s, b.ry * part.s);
+          var g = ctx.createRadialGradient(0, 0, 0, 0, 0, 1);
+          g.addColorStop(0, 'rgba(226,238,250,' + alpha + ')');
+          g.addColorStop(0.55, 'rgba(216,230,244,' + (alpha * 0.55) + ')');
+          g.addColorStop(1, 'rgba(206,222,240,0)');
+          ctx.fillStyle = g;
+          ctx.fillRect(-1, -1, 2, 2);
+          ctx.restore();
+        }
+      }
+    }
+
+    function frame(ts){
+      raf = requestAnimationFrame(frame);
+      if(!ctx || !width || !height) return;
+      if(!lastTs) lastTs = ts;
+      var dt = Math.min((ts - lastTs) / 1000, 0.05);
+      lastTs = ts;
+      ctx.clearRect(0, 0, width, height);
+      var key = types[idx].key;
+      if(key === 'rain') drawRain(dt, ts);
+      else if(key === 'snow') drawSnow(dt);
+      else if(key === 'fog') drawFog(dt, ts);
+    }
+
+    function start(){ if(!raf){ lastTs = 0; raf = requestAnimationFrame(frame); } }
+    function stop(){ if(raf){ cancelAnimationFrame(raf); raf = 0; } }
+
+    document.addEventListener('visibilitychange', function(){
+      if(document.hidden) stop();
+      else start();
+    });
+
+    return {
+      attach: function(el){
+        canvas = el;
+        ctx = canvas.getContext('2d');
+        resize();
+        start();
+      },
+      resize: resize,
+      isSavedValid: isSavedValid,
+      resetToClear: resetToClear,
+      next: function(){
+        idx = (idx + 1) % types.length;
+        try{ localStorage.setItem(LS, types[idx].key); }catch(e){}
+        initParticles();
+        return types[idx];
+      },
+      current: function(){ return types[idx]; }
+    };
+  })();
+
   const game = {
     cellSize: 40,
     line: 0,
@@ -628,6 +863,7 @@ body{
       {name:'水墨', dir:'res_ink'},
       {name:'冰雪', dir:'res_ice'}
     ],
+    skinLS: 'push_box.skin',
     skinIndex: 0,
     customLevels: [],
     playerLevels: [],
@@ -646,11 +882,34 @@ body{
 
     async init(){
       this.bindEvents();
-      this.applySkin(this.skinIndex);
+      var skinOk = this.restoreSkin();
+      var weatherOk = Weather.isSavedValid();
+      if(skinOk && weatherOk){
+        this.applySkin(this.skinIndex);
+      } else {
+        this.applySkin(0);
+        Weather.resetToClear();
+      }
+      this.updateWeatherBtn();
+      Weather.attach(document.getElementById('weatherCanvas'));
       this.loadCustomLevels();
       this.updateModeBtn();
       this.updateUndoBtn();
       await this.loadLevel(1);
+    },
+
+    restoreSkin(){
+      this.skinIndex = 0;
+      var saved = null;
+      try{ saved = localStorage.getItem(this.skinLS); }catch(e){ return true; }
+      if(saved === null) return true;
+      for(var i=0; i<this.skins.length; i++){
+        if(this.skins[i].dir === saved){
+          this.skinIndex = i;
+          return true;
+        }
+      }
+      return false;
     },
 
     applySkin(idx){
@@ -664,10 +923,21 @@ body{
       root.style.setProperty('--img-wall','url('+skin.dir+'/push_box_wall.png)');
       root.style.setProperty('--img-target','url('+skin.dir+'/push_box_target.png)');
       document.getElementById('btnSkin').textContent='素材:'+skin.name;
+      try{ localStorage.setItem(this.skinLS, skin.dir); }catch(e){}
     },
 
     switchSkin(){
       this.applySkin(this.skinIndex+1);
+    },
+
+    switchWeather(){
+      Weather.next();
+      this.updateWeatherBtn();
+    },
+
+    updateWeatherBtn(){
+      var w = Weather.current();
+      document.getElementById('btnWeather').textContent = w.icon + ' ' + w.name;
     },
 
     bindEvents(){
@@ -679,8 +949,8 @@ body{
         var cell = this.getCell(parseInt(el.dataset.l, 10), parseInt(el.dataset.c, 10));
         if(cell) this.cellClick(cell);
       });
-      window.addEventListener('resize', () => this.fitCanvasToViewport());
-      window.addEventListener('orientationchange', () => this.fitCanvasToViewport());
+      window.addEventListener('resize', () => { this.fitCanvasToViewport(); Weather.resize(); });
+      window.addEventListener('orientationchange', () => { this.fitCanvasToViewport(); Weather.resize(); });
       document.getElementById('btnMode').onclick = () => {
         if(this.disabled) return;
         Sound.click();
@@ -697,6 +967,10 @@ body{
       document.getElementById('btnSkin').onclick = () => {
         Sound.click();
         this.switchSkin();
+      };
+      document.getElementById('btnWeather').onclick = () => {
+        Sound.click();
+        this.switchWeather();
       };
       document.getElementById('btnPrev').onclick = () => {
         if(this.disabled) return;
@@ -942,6 +1216,7 @@ body{
 
       this.renderGrid();
       this.fitCanvasToViewport();
+      Weather.resize();
       this.refreshAllMovable();
       this.checkWin();
       this.updateStatus();
